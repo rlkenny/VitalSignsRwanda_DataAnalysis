@@ -265,9 +265,6 @@ out_ls_rwanda <- filter(out_ls, country == "RWA")
 ```
 
 
-
-
-
 ```{r}
 #write_csv(out_rwanda, "/Users/austindavidrichards/Desktop/foodsecurity_hh.csv")
 #write_csv(out_ls_rwanda #"/Users/austindavidrichards/Desktop/foodsecurity_ls.csv")
@@ -288,45 +285,20 @@ out_ls_rwanda <- filter(out_ls, country == "RWA")
 
 ```
 
-ase_when(ag4a_01 == TRUE ~ kg_peracre,
-                                                              ag4a_01 == FALSE ~ ag4a_15/ag4a_08*ag4a_02))
-
+#### Houshold food security data wrangling
 ```{r}
-testing <-merge(joined_df, out_rwanda, all.x=T, all.y=F)
+hh_joined_df <-merge(joined_df, out_rwanda, all.x=T, all.y=F) %>% 
+  select(hfias, hh_refno, ag4a_04, field_no, landscape_no, crop_name) %>% 
+  mutate(ic = case_when(ag4a_04 == TRUE ~ 1, FALSE ~ 0))
 
+hh_joined_df$ic[is.na(hh_joined_df$ic)] <- 0
+hh_joined_df$ic <- as.numeric(hh_joined_df$ic)
 
+hh_joined_df_ag  <- aggregate(ic ~ hh_refno + hfias + landscape_no, FUN =  sum, data = hh_joined_df)
+hh_joined_df_ag <- aggregate(hfias ~ hh_refno + ic +landscape_no, FUN = mean, data= hh_joined_df_ag) %>% 
+  mutate(sometimes_ic = case_when(ic > 0 ~ TRUE, ic == 0 ~ FALSE))
 
-testing <- select(testing, hfias, hh_refno, ag4a_04, field_no, landscape_no, crop_name)
-
-testing <- mutate(testing, ic = case_when(ag4a_04 == TRUE ~ 1, FALSE ~ 0))
-```
-
-```{r}
-testing$ic[is.na(testing$ic)] <- 0
-
-testing$ic <- as.numeric(testing$ic)
-
-```
-
-
-
-```{r}
-testing_ag  <- aggregate(ic ~ hh_refno + hfias + landscape_no, FUN =  sum, data = testing)
-
-#View(testing_ag)
-
-```
-
-
-
-
-```{r}
-testing_ag2 <- aggregate(hfias ~ hh_refno + ic +landscape_no, FUN = mean, data= testing_ag)
-
-testing_ag3 <- mutate(testing_ag2, sometimes_ic = case_when(ic > 0 ~ TRUE,
-                                                              ic == 0 ~ FALSE))
-
-#View(testing_ag3)
+#View(hh_joined_df_ag)
 
 ```
 
@@ -336,7 +308,7 @@ testing_ag3 <- mutate(testing_ag2, sometimes_ic = case_when(ic > 0 ~ TRUE,
 ```{r}
 #controlling for landscape, households that intercrop are more food secure (p=.036)
 
-gulp <- lm(testing_ag3$hfias ~ testing_ag3$sometimes_ic + testing_ag3$landscape_no)
+gulp <- lm(hh_joined_df_ag$hfias ~ hh_joined_df_ag$sometimes_ic + hh_joined_df_ag$landscape_no)
 summary(gulp)
 
 ```
@@ -345,8 +317,8 @@ summary(gulp)
 
 ```{r}
 
-inter <- filter(testing_ag3, sometimes_ic == TRUE)
-dont <- filter(testing_ag3, sometimes_ic == FALSE)
+inter <- filter(hh_joined_df_ag, sometimes_ic == TRUE)
+dont <- filter(hh_joined_df_ag, sometimes_ic == FALSE)
   
 
 mean(inter$hfias)
@@ -371,26 +343,23 @@ hist(dont$hfias)
 
 #### RK code starts here for a beautiful graph
 
+#Data wrangling & exploration
 ```{r}
 
-#View(testing_ag3)
-
-ggplot(testing_ag3)+
+#old overlapping density plot that we decided to replace
+ggplot(hh_joined_df_ag)+
   geom_density(aes(x=hfias, fill =sometimes_ic, alpha = .4))
 
-#View(fs_df)
+#Create food security levels for dfs with and without other variables
+fs_df_ag <- mutate(hh_joined_df_ag, Level = ifelse(hh_joined_df_ag$hfias == 0 | hh_joined_df_ag$hfias == 1, 4, ifelse(hh_joined_df_ag$hfias > 1 & hh_joined_df_ag$hfias <= 18, 3, ifelse(hh_joined_df_ag$hfias > 18 & hh_joined_df_ag$hfias <= 36, 2, 1)))) 
 
-fs_df1 <- mutate(testing_ag3, Level = ifelse(testing_ag3$hfias == 0 | testing_ag3$hfias == 1, 4, ifelse(testing_ag3$hfias > 1 & testing_ag3$hfias <= 18, 3, ifelse(testing_ag3$hfias > 18 & testing_ag3$hfias <= 36, 2, 1)))) 
 
-
-fs_df2 <- mutate(testing, Level = ifelse(testing$hfias == 0 | testing$hfias == 1, 4, ifelse(testing$hfias > 1 & testing$hfias <= 18, 3, ifelse(testing$hfias > 18 & testing$hfias <= 36, 2, 1)))) %>% 
+fs_df <- mutate(hh_joined_df, Level = ifelse(hh_joined_df$hfias == 0 | hh_joined_df$hfias == 1, 4, ifelse(hh_joined_df$hfias > 1 & hh_joined_df$hfias <= 18, 3, ifelse(hh_joined_df$hfias > 18 & hh_joined_df$hfias <= 36, 2, 1)))) %>% 
   na.omit(fs_df)
+```
 
-# View(fs_df)
-
-#colourCount = length(unique(fs_df$crop_name))
-#getPalette = colorRampPalette(brewer.pal(9, "Accent"))
-
+```{r}
+#Set theme
 theme_vsr <- function () { 
     theme_classic(base_size=9, base_family="Palatino")+
     theme(plot.title = element_text(face="bold"), legend.title = element_text(face="bold"))
@@ -400,7 +369,7 @@ theme_vsr <- function () {
 
 ```{r}
 #Food security by landscape
-FS_landscape <- ggplot(fs_df2, aes(x=landscape_no, fill=rev(ordered(Level))))+
+FS_landscape <- ggplot(fs_df, aes(x=landscape_no, fill=rev(ordered(Level))))+
   geom_bar(stat="count", position = "fill")+
   scale_fill_manual(values = c("#eb4024", "#eb8932", "#e8af3c", "#449d8b"), name = "Food Security", labels = c("Severely food insecure", "Moderately food insecure", "Mildy food insecure", "Food secure"))+
   scale_x_discrete(expand = c(0.08,0))+ 
@@ -419,7 +388,7 @@ ggsave("FS_landscape.png", plot = FS_landscape, device = "png", path = "~/Docume
 
 col_vector=c("#a6cd5b", "#d4cae1", "#eb8932", "#df417e", "#f4c28f", "#436caa", "#fffca5", "#72bad3", "#b3602a", "#666666", "#539d3e", "#b9d7e4",    "#efa09c", "#9f7731", "#9ce5d5", "#eb4024", "#e8af3c", "#999999", "#a66f5b", "#644195", "#f56e18", "#449d8b", "#752559", "#e7fbc9", "#693f26", "#2c6b96", "#ff8f7b", "#a68422", "#9c8dc3", "#85c9c8")
 
-FS_level_crops <- ggplot(fs_df2, aes(x=Level, fill=ordered(crop_name)))+
+FS_level_crops <- ggplot(fs_df, aes(x=Level, fill=ordered(crop_name)))+
   geom_bar(stat="count", position = "fill")+
   scale_fill_manual("Crop Type", values=col_vector)+
   scale_y_continuous(labels=scales::percent, expand = c(0,0))+
@@ -432,7 +401,7 @@ ggsave("FS_level_crops.png", plot = FS_level_crops, device = "png", path = "~/Do
   dpi = 300)
 
 
-# filter(fs_df2, Level ==2) %>% 
+# filter(fs_df, Level ==2) %>% 
 #   group_by(crop_name) %>%
 #   tally()
 
@@ -441,11 +410,11 @@ ggsave("FS_level_crops.png", plot = FS_level_crops, device = "png", path = "~/Do
 #Level 3 (midly insecure) grows 26 types of crops
 #Level 4 (food secure) grows 26 types of crops
 
-# filter(fs_df2) %>% 
+# filter(fs_df) %>% 
 #   group_by(Level) %>%
 #   tally()
 # 
-# filter(fs_df1) %>% 
+# filter(fs_df_ag) %>% 
 #   group_by(Level) %>%
 #   tally()
 
@@ -462,7 +431,11 @@ theme_VSR <- function () {
     theme(plot.title = element_text(hjust = 0.5, face="bold"), legend.title = element_text(face="bold"))
 }
 
-fs_inter_bar <- ggplot(fs_df1, aes(sometimes_ic, fill=ordered(Level)))+
+```
+
+####Food security ~ Intercropping
+```{r}
+fs_inter_bar <- ggplot(fs_df_ag, aes(sometimes_ic, fill=ordered(Level)))+
   geom_bar(stat="count", position = "fill")+
   xlab("")+ylab("Proportion of sample")+
   ggtitle("Food Security & Intercropping")+
@@ -477,6 +450,26 @@ ggsave("fs_inter_bar.png", plot = fs_inter_bar, device = "png", path = "~/Docume
   width = 4, height = 3, units = c("in"),
   dpi = 300)
 
+```
+
+####Food security ~ Intercropping
+```{r}
+View(fs_df)
+
+fs_inter_bar <- ggplot(fs_df_ag, aes(sometimes_ic, fill=ordered(Level)))+
+  geom_bar(stat="count", position = "fill")+
+  xlab("")+ylab("Proportion of sample")+
+  ggtitle("Food Security & Intercropping")+
+  scale_fill_manual(values = c("#eb4024", "#eb8932", "#e8af3c", "#449d8b"), name = "Food Security", labels = c("Severely food insecure", "Moderately food insecure", "Mildy food insecure", "Food secure"))+
+  scale_x_discrete(expand = c(0.5, 0), labels = c("Monocropped","Intercropped")) +
+  scale_y_continuous(expand = c(0, 0))+
+  theme_VSR()
+
+fs_inter_bar
+
+ggsave("fs_inter_bar.png", plot = fs_inter_bar, device = "png", path = "~/Documents/",
+  width = 4, height = 3, units = c("in"),
+  dpi = 300)
 
 ```
 
