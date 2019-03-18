@@ -1,0 +1,109 @@
+---
+title: "VSR Final Graph Style"
+author: "Rachel Kenny"
+date: "3/11/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+  
+This describes the code used to make graphs consistent. theme_VSR should be applied to all graphs, x and y axis should be scaled when appropriate, Zissou1 colors should be applied.  Finally, save the graph as a high quality png and check for appropriate scaling of elements.
+
+
+####theme_VSR()
+Will apply theme_classic plus updated font (Palatino), bold title (left justified and slightly shifted with hjust), and bold legend title  
+  
+  
+```{r, messages = FALSE}
+theme_VSR <- function () { 
+    theme_classic(base_size=10, base_family="Palatino")+
+    theme(plot.title = element_text(hjust = 0.5, face="bold"), legend.title = element_text(face="bold"))
+}
+
+```
+
+**Scale axes**  
+*Note that the values for expansion of the axis will have to adjust, but should adjust such that there is a small amount of space on the left side*  
+```{r, eval = FALSE}
++scale_x_discrete(expand = c(0.015, 0))  
++scale_x_continuous(expand = c(0.015, 0))  
++scale_y_discrete(expand = c(0, 0))  
++scale_y_continuous(expand = c(0, 0)) 
+```
+  
+  
+####Wes Anderson Zissou1 Color Palette:
+- **Red:** "#e03c21"  
+- **Dark yellow:** "#dab03a"  
+- **Light yellow:** "#e6cd4f"  
+- **Light blue:** "#85b6c4"  
+- **Dark blue:** "#5498af"  
+  
+  
+####Expanded color palette (11 colors)
+- **Red:** "#e03c21"  
+- **Light red:** "#de6e5b"  
+- **Orange:** "eb8932"  
+- **Dark yellow:** "#dab03a"  
+- **Light yellow:** "#e6cd4f"  
+- **Light green-yellow:** "#b4ce8f"  
+- **Light green-blue:** "90c3ab"  
+- **Dark green-blue:** "449d8b"  
+- **Dark green:** "#5498af"  
+- **Light blue:** "#85b6c4"  
+- **Dark blue:** "#5498af"  
+  
+  
+  
+####Uses for palette
+```{r, eval=FALSE}
+#palette
+wes_palette("Zissou1")  
+
+#Use of Zissou palette  
++scale_fill_manual(values = wes_palette("Zissou1")) 
+                   
+#Use of reversed Zissou palette 
++scale_fill_manual(values = rev(wes_palette("Zissou1")) 
+
+#Two colors to indicate treatments
++scale_fill_manual(values = c("#e6cd4f", "#85b6c4")) 
+
+#Continuous palett
+pal <- wes_palette("Zissou1", 21, type = "continuous")
+scale_fill_gradientn(colours = pal)
+
+#If distinct colors are needed
++scale_fill_manual(values = c("#e03c21", "#de6e5b", "eb8932", "#dab03a", "#e6cd4f", "#b4ce8f", "90c3ab", "449d8b", "#5498af", "#85b6c4", "#5498af") 
+                   
++scale_color_manual(values = c("#a6cd5b", "#f59082", "#72bad3", "#752559", "#f5d05d", "#eb4024", "#2c6b96", "#eb8932", "#7789cc"))                   
+```
+
+
+
+####To save pngs, use this code and modify as needed
+
+```{r, eval=FALSE}
+#Small graph  
+ggsave("plot_name.png", plot = plot_name, device = "png", path = "~/Documents/",
+  width = 4, height = 3, units = c("in"),
+  dpi = 300)
+
+#Halfpage graph 
+ggsave("plot_name.png", plot = plot_name, device = "png", path = "~/Documents/",
+  width = 7.5, height = 4, units = c("in"),
+  dpi = 300)
+```
+
+
+#Example
+```{r}
+
+
+
+```
+
+
+

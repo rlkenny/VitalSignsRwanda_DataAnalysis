@@ -1,0 +1,485 @@
+---
+title: "Untitled"
+author: "Austin Richards"
+date: "1/25/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+##Data Wrangling
+
+```{r}
+
+#load libraries
+library(tidyverse)
+library(lubridate)
+library(dplyr)
+library(readr)
+library(ggplot2)
+library(ggthemes)
+library(broom)
+library(purrr)
+library(dotwhisker)
+library(estimatr)
+library(readr)
+library(multiwayvcov)
+library(mice)
+library(miceadds)
+library(Amelia)
+library(RColorBrewer)
+library(coefplot)
+devtools::install_github("karthik/wesanderson")
+library(wesanderson)
+
+
+#load data
+fieldcrop <- read_csv(url("https://vitalsigns-website-downloads.s3.amazonaws.com/tables/household_field_season_fieldcrop.csv"))
+hh_fieldcrop <- read_csv(url("https://vitalsigns-website-downloads.s3.amazonaws.com/tables/household_fieldcrop.csv"))
+field_season <- read_csv(url("https://vitalsigns-website-downloads.s3.amazonaws.com/tables/household_field_season.csv"))
+hh_indiv <- read_csv(url("https://vitalsigns-website-downloads.s3.amazonaws.com/tables/household_individual.csv"))
+fs <- read_csv(url("https://vitalsigns-website-downloads.s3.amazonaws.com/tables/household.csv"))
+exchange_rates <- read_csv("exchange_rates.csv")
+
+```
+
+
+```{r}
+#Filter fieldcrop, treat factors as factors and numeric as numeric
+fieldcrop <- dplyr::filter(fieldcrop, country == 'RWA', ag4a_15 != "na")
+fieldcrop$ag4a_08 <- as.numeric(fieldcrop$ag4a_08)
+fieldcrop$ag4a_15 <- as.numeric(fieldcrop$ag4a_15)
+fieldcrop$ag4a_15_unit <- as.factor(fieldcrop$ag4a_15_unit)
+fieldcrop$crop_name <- as.factor(fieldcrop$crop_name)
+fieldcrop$ag4a_15_unit[which(fieldcrop$ag4a_15_unit=="Liter")] <- "Kg" #because this is a misentry
+fieldcrop <- filter(fieldcrop, ag4a_15_unit == "Kg")
+
+#fix crop name mismatches
+fieldcrop$crop_name[which(fieldcrop$crop_name=="Irish potatoes")] <- "Irish Potatoes"
+fieldcrop$crop_name[which(fieldcrop$crop_name=="Blood fruit")] <- "Blood Fruit"  
+
+#Filter field_season, treat factors as factors and numeric as numeric
+field_season <- filter(field_season, country == 'RWA',  ag3a_03 == 'Cultivated' )
+field_season$ag3a_39 <- as.factor(field_season$ag3a_39)
+field_season$ag3a_39a <- as.factor(field_season$ag3a_39a)
+field_season$ag3a_39a_other <- as.factor(field_season$ag3a_39a_other)
+field_season$ag3a_40 <- as.numeric(field_season$ag3a_40)
+field_season$ag3a_45 <- as.factor(field_season$ag3a_45)
+field_season$ag3a_47 <- as.factor(field_season$ag3a_47)
+
+#fix crop name mismatch
+field_season$ag3a_07_1[which(field_season$ag3a_07_1=="Irish potatoes")] <- "Irish Potatoes"
+field_season$ag3a_07_1[which(field_season$ag3a_07_1=="Blood fruit")] <- "Blood Fruit"
+
+#fset landscape # as factor in household survey data
+hh_fieldcrop$landscape_no <- as.factor(hh_fieldcrop$landscape_no)
+
+#Join fieldcrop and field_season dataframes
+joined_df <- inner_join(field_season, fieldcrop, by =c("id"= "parent_id", 'round', "landscape_no", "country", "field_no", "hh_refno", "season"))
+
+#Add columns for yield
+joined_df <- mutate(joined_df, kg_peracre = ag4a_15/ag4a_08)
+joined_df <- mutate(joined_df, kg_perha = kg_peracre*(1/.404686))
+
+#per acre planted 
+joined_df$ag4a_02[which(joined_df$ag4a_02=="1/4")] <- .25
+joined_df$ag4a_02[which(joined_df$ag4a_02=="1/2")] <- .5
+joined_df$ag4a_02[which(joined_df$ag4a_02=="3/4")] <- .75
+joined_df$ag4a_02[which(joined_df$ag4a_02=="Almost All")] <- 1
+joined_df$ag3a_40 <- as.numeric(joined_df$ag3a_40)
+joined_df$ag3a_47 <- as.numeric(joined_df$ag3a_47)
+joined_df$ag4a_02 <- as.numeric(joined_df$ag4a_02)
+
+joined_df <- mutate(joined_df, kg_peracre_planted = case_when(ag4a_01 == TRUE ~ kg_peracre, ag4a_01 == FALSE ~ ag4a_15/(ag4a_08*ag4a_02))) %>% 
+  mutate(kg_perha_planted = kg_peracre_planted *(1/.404686))
+
+#value per hectare planted 
+joined_df <- filter(joined_df, kg_perha_planted != Inf) %>% 
+  mutate(value_peracre = ag4a_16/ag4a_08) %>% 
+  mutate(value_perha = value_peracre*(1/.404686)) %>% 
+  mutate(value_peracre_planted = case_when(ag4a_01 == TRUE ~ value_peracre, ag4a_01 == FALSE ~ ag4a_16/ag4a_08*ag4a_02)) %>% 
+  mutate(value_perha_planted = value_peracre_planted *(1/.404686))
+
+
+#Add column for pesticide kg per hectare planted
+joined_df <-mutate(joined_df, pesticide_use_kg = ifelse(ag3a_60_2 == "Millilitre", ag3a_60_1*0.001, ag3a_60_1)) %>% 
+  mutate(pesticide_use_kg = case_when(ag3a_58 == TRUE ~ pesticide_use_kg, ag3a_58 == FALSE ~ 0)) %>% 
+  mutate(pest_peracre = pesticide_use_kg/ag4a_08) %>% 
+  mutate(pest_perha = pest_peracre*(1/.404686)) %>% 
+  mutate(pest_peracre_planted = case_when(ag4a_01 == TRUE ~ pest_peracre, ag4a_01 == FALSE ~ pest_peracre/ag4a_02)) %>% 
+  mutate(pest_perha_planted = pest_peracre_planted *(1/.404686))
+
+#Add column for inorg fert kg per hectare planted
+joined_df <- mutate(joined_df, inorg_peracre = ag3a_47/ag4a_08) %>% 
+  mutate(inorg_perha = inorg_peracre*(1/.404686)) %>%  
+  mutate(inorg_perha_planted = case_when(ag4a_01 == TRUE ~ inorg_perha, ag4a_01 == FALSE ~ inorg_perha/ag4a_02)) %>% 
+  mutate(inorg_perha_planted = case_when(ag3a_45 ==TRUE ~ inorg_perha_planted, ag3a_45 == FALSE ~ 0 ))
+
+#Add column for org fert kg per hectare planted
+joined_df <- mutate(joined_df, org_peracre = ag3a_40/ag4a_08) %>% 
+  mutate(org_perha = org_peracre*(1/.404686)) %>%
+  mutate(org_perha_planted = case_when(ag4a_01 == TRUE ~ org_peracre, ag4a_01 == FALSE ~ org_perha/ag4a_02)) %>% 
+  mutate(org_perha_planted = case_when(ag3a_39 ==TRUE ~ org_perha_planted, ag3a_39 == FALSE ~ 0 ))
+
+```
+
+
+
+```{r}
+# hh_i031
+# How many meals, including breakfast are taken per day in your household? (Adults: over 5 Years Old)
+
+# hh_e65_1- Net household income
+
+# hh_i08
+# In the last 12 months, have you been faced with a situation when you did not have enough food to feed the household?
+
+
+# 2  Rely on less preferred foods? 
+# 2  Limit the variety of foods eaten? 
+# 5  Limit portion size at meal-times? 
+# 5  Reduce number of meals eaten in a day? 
+# 7  Restrict consumption by adults for small children to eat? 
+# 7  Borrow food, or rely on help from a friend or relative? 
+# 10  Have no food of any kind in your house-hold? 
+# 10  Go a whole day and night without eating anything?
+
+fs$months_insecurity <- rowSums(fs[ , c(paste0('hh_i09a_', seq(1,12)), paste0('hh_i09b_', seq(1,12)))], na.rm=T)
+
+
+fs$hfias <- rowSums(fs[ , c('hh_i02_1', 'hh_i02_2', 'hh_i02_3', 'hh_i02_4', 'hh_i02_5', 'hh_i02_6', 'hh_i02_7', 'hh_i02_8')], na.rm=T)
+
+
+f_groups <- c("hh_k2_8_a", "hh_k2_8_b", "hh_k2_8_c", "hh_k2_8_d", "hh_k2_8_e",
+              "hh_k2_8_f","hh_k2_8_g",  "hh_k2_8_h", "hh_k2_8_i", "hh_k2_8_j")
+
+fs$diversity <- rowSums(fs[f_groups] / 7, na.rm=T) / length(f_groups)
+
+fs <- fs %>% 
+  select(country, landscape_no, hh_refno, round, shortage_year=hh_i08, 
+         months_insecurity, number_meals=hh_i031, hfias, diversity,
+         hh_interview_date)
+
+##Nonfood spending
+##Do we need Sec L?
+
+nfs <- read_csv(url("https://vitalsigns-website-downloads.s3.amazonaws.com/tables/household_expenditure.csv"))
+
+nfs$hh_paid[nfs$hh_period=='week'] <- nfs$hh_paid[nfs$hh_period=='week']*52.14
+nfs$hh_paid[nfs$hh_period=='year'] <- nfs$hh_paid[nfs$hh_period=='year']*12
+
+nfs <- nfs %>%
+  group_by(country, landscape_no, hh_refno, round) %>%
+  summarize(Nonfood.Spending = sum(hh_paid, na.rm=T))
+
+
+##Food Spending
+food <- read_csv(url("https://vitalsigns-website-downloads.s3.amazonaws.com/tables/household_food.csv"))
+
+food <- food %>% 
+  rowwise() %>%
+  mutate(FCV = sum(hh_k_04, hh_k_05a, na.rm=T)) %>%
+  group_by(country, landscape_no, hh_refno, round) %>%
+  summarise(Food.Consumption.Value = sum(FCV, na.rm = TRUE)*52.14, Food.Spending = sum(hh_k_04, na.rm=T)*52.14)
+
+#Combine and aggregate
+out <- Reduce(function(x, y){merge(x, y, all=T)}, list(fs, nfs, food))
+out$Food_As_Percent_Total_Spending <- (out$Food.Spending/(out$Food.Spending + out$Nonfood.Spending))*100
+
+```
+
+
+```{r}
+
+colnames(exchange_rates)[colnames(exchange_rates)=="End Date"] <- "date"
+
+```
+
+
+
+```{r}
+ymd(exchange_rates$date)
+
+```
+
+
+
+```{r}
+#match rate to interview date and country
+
+out$date <- ymd(ceiling_date(out$hh_interview_date, "week"))  #find the next Sunday
+
+out<-merge(out, exchange_rates, all.x=T, all.y=F)
+
+rateadjust <- c('Nonfood.Spending', 'Food.Spending', 'Food.Consumption.Value')
+
+out[ , rateadjust] <- (out[ , rateadjust]/out$rate)*1.1
+
+out_ls <- out %>% group_by(country, landscape_no) %>%
+  summarize(avg_meals = mean(number_meals, na.rm=T),
+            Percent_Shortage_Past_Year = mean(shortage_year, na.rm=T)*100,
+            Mean_Months_Insecurity = mean(months_insecurity, na.rm=T),
+            Mean_Diet_Diversity = mean(diversity, na.rm=T),
+            Mean_Nonfood_Spending = mean(Nonfood.Spending, na.rm=T),
+            Mean_Food_Consumption_Value = mean(Food.Consumption.Value, na.rm=T),
+            Mean_Food_Spending = mean(Food.Spending, na.rm=T),
+            Food_As_Percent_Total_Spending = mean(Food_As_Percent_Total_Spending, na.rm=T))
+
+
+
+```
+
+```{r}
+
+#########################################
+#Write
+#########################################
+
+
+#write_csv(out, "/Users/austindavidrichards/Desktop/foodsecurity_hh.csv")
+#write_csv(out_ls, "/Users/austindavidrichards/Desktop/foodsecurity_ls.csv")
+
+#writeS3(out, 'FoodSecurity_HH.csv')
+#writeS3(out_ls, 'FoodSecurity_Landscape.csv')
+
+
+```
+
+
+
+```{r}
+
+out_rwanda <- filter (out, country == "RWA")
+warnings()
+
+out_ls_rwanda <- filter(out_ls, country == "RWA")
+
+```
+
+
+```{r}
+#summary(out_rwanda$)
+```
+
+
+
+
+
+```{r}
+#write_csv(out_rwanda, "/Users/austindavidrichards/Desktop/foodsecurity_hh.csv")
+#write_csv(out_ls_rwanda #"/Users/austindavidrichards/Desktop/foodsecurity_ls.csv")
+```
+
+
+```{r}
+#Just confirmign this whole process resulted in more data points (more households) than the old csv 
+
+#old <- read_csv(url("https://vs-cdb-indicators.s3.amazonaws.com/FoodSecurity_HH.csv"))
+
+
+#old <- filter(old, country == "RWA")
+
+#old$landscape_no <- as.factor(old$landscape_no)
+
+#levels(old$landscape_no)
+
+```
+
+ase_when(ag4a_01 == TRUE ~ kg_peracre,
+                                                              ag4a_01 == FALSE ~ ag4a_15/ag4a_08*ag4a_02))
+
+```{r}
+testing <-merge(joined_df, out_rwanda, all.x=T, all.y=F)
+
+
+
+testing <- select(testing, hfias, hh_refno, ag4a_04, field_no, landscape_no, crop_name)
+
+testing <- mutate(testing, ic = case_when(ag4a_04 == TRUE ~ 1, FALSE ~ 0))
+```
+
+```{r}
+testing$ic[is.na(testing$ic)] <- 0
+
+testing$ic <- as.numeric(testing$ic)
+
+```
+
+
+
+```{r}
+testing_ag  <- aggregate(ic ~ hh_refno + hfias + landscape_no, FUN =  sum, data = testing)
+
+#View(testing_ag)
+
+```
+
+
+
+
+```{r}
+testing_ag2 <- aggregate(hfias ~ hh_refno + ic +landscape_no, FUN = mean, data= testing_ag)
+
+testing_ag3 <- mutate(testing_ag2, sometimes_ic = case_when(ic > 0 ~ TRUE,
+                                                              ic == 0 ~ FALSE))
+
+#View(testing_ag3)
+
+```
+
+
+
+
+```{r}
+#controlling for landscape, households that intercrop are more food secure (p=.036)
+
+gulp <- lm(testing_ag3$hfias ~ testing_ag3$sometimes_ic + testing_ag3$landscape_no)
+summary(gulp)
+
+```
+
+
+
+```{r}
+
+inter <- filter(testing_ag3, sometimes_ic == TRUE)
+dont <- filter(testing_ag3, sometimes_ic == FALSE)
+  
+
+mean(inter$hfias)
+
+mean(dont$hfias)
+
+
+median(inter$hfias)
+median(dont$hfias)
+```
+
+
+
+
+```{r}
+hist(inter$hfias)
+hist(dont$hfias)
+```
+
+
+
+
+#### RK code starts here for a beautiful graph
+
+```{r}
+
+#View(testing_ag3)
+
+ggplot(testing_ag3)+
+  geom_density(aes(x=hfias, fill =sometimes_ic, alpha = .4))
+
+#View(fs_df)
+
+fs_df1 <- mutate(testing_ag3, Level = ifelse(testing_ag3$hfias == 0 | testing_ag3$hfias == 1, 4, ifelse(testing_ag3$hfias > 1 & testing_ag3$hfias <= 18, 3, ifelse(testing_ag3$hfias > 18 & testing_ag3$hfias <= 36, 2, 1)))) 
+
+
+fs_df2 <- mutate(testing, Level = ifelse(testing$hfias == 0 | testing$hfias == 1, 4, ifelse(testing$hfias > 1 & testing$hfias <= 18, 3, ifelse(testing$hfias > 18 & testing$hfias <= 36, 2, 1)))) %>% 
+  na.omit(fs_df)
+
+# View(fs_df)
+
+#colourCount = length(unique(fs_df$crop_name))
+#getPalette = colorRampPalette(brewer.pal(9, "Accent"))
+
+theme_vsr <- function () { 
+    theme_classic(base_size=9, base_family="Palatino")+
+    theme(plot.title = element_text(face="bold"), legend.title = element_text(face="bold"))
+}
+```
+
+
+```{r}
+#Food security by landscape
+FS_landscape <- ggplot(fs_df2, aes(x=landscape_no, fill=rev(ordered(Level))))+
+  geom_bar(stat="count", position = "fill")+
+  scale_fill_manual(values = c("#eb4024", "#eb8932", "#e8af3c", "#449d8b"), name = "Food Security", labels = c("Severely food insecure", "Moderately food insecure", "Mildy food insecure", "Food secure"))+
+  scale_x_discrete(expand = c(0.08,0))+ 
+  scale_y_continuous(labels=scales::percent, expand = c(0,0))+
+  ggtitle("Food Security and Landscape")+
+  ylab("Percent")+
+  xlab("Landscape")+
+  theme_vsr()
+
+FS_landscape
+
+ggsave("FS_landscape.png", plot = FS_landscape, device = "png", path = "~/Documents/Bren/GP/3Graphs/Results/",
+  width = 5, height = 3, units = c("in"),
+  dpi = 300)
+
+
+col_vector=c("#a6cd5b", "#d4cae1", "#eb8932", "#df417e", "#f4c28f", "#436caa", "#fffca5", "#72bad3", "#b3602a", "#666666", "#539d3e", "#b9d7e4",    "#efa09c", "#9f7731", "#9ce5d5", "#eb4024", "#e8af3c", "#999999", "#a66f5b", "#644195", "#f56e18", "#449d8b", "#752559", "#e7fbc9", "#693f26", "#2c6b96", "#ff8f7b", "#a68422", "#9c8dc3", "#85c9c8")
+
+FS_level_crops <- ggplot(fs_df2, aes(x=Level, fill=ordered(crop_name)))+
+  geom_bar(stat="count", position = "fill")+
+  scale_fill_manual("Crop Type", values=col_vector)+
+  scale_y_continuous(labels=scales::percent, expand = c(0,0))+
+  scale_x_discrete(expand=c(0.015,0), labels=c("Severely food insecure", "Moderately food insecure", "Mildly food insecure", "Food secure"))+
+  theme_vsr()
+
+FS_level_crops
+
+ggsave("FS_level_crops.png", plot = FS_level_crops, device = "png", path = "~/Documents/Bren/GP/3Graphs/Results/", width = 6, height = 4.3,
+  dpi = 300)
+
+
+# filter(fs_df2, Level ==2) %>% 
+#   group_by(crop_name) %>%
+#   tally()
+
+#Level 1 (severely insecure) grows 9 types of crops
+#Level 2 (moderately insecure) grows 21 types of crops
+#Level 3 (midly insecure) grows 26 types of crops
+#Level 4 (food secure) grows 26 types of crops
+
+# filter(fs_df2) %>% 
+#   group_by(Level) %>%
+#   tally()
+# 
+# filter(fs_df1) %>% 
+#   group_by(Level) %>%
+#   tally()
+
+```
+
+
+
+
+```{r}
+#design my own theme
+                                              
+theme_VSR <- function () { 
+    theme_classic(base_size=10, base_family="Palatino")+
+    theme(plot.title = element_text(hjust = 0.5, face="bold"), legend.title = element_text(face="bold"))
+}
+
+fs_inter_bar <- ggplot(fs_df1, aes(sometimes_ic, fill=ordered(Level)))+
+  geom_bar(stat="count", position = "fill")+
+  xlab("")+ylab("Proportion of sample")+
+  ggtitle("Food Security & Intercropping")+
+  scale_fill_manual(values = c("#eb4024", "#eb8932", "#e8af3c", "#449d8b"), name = "Food Security", labels = c("Severely food insecure", "Moderately food insecure", "Mildy food insecure", "Food secure"))+
+  scale_x_discrete(expand = c(0.5, 0), labels = c("Monocropped","Intercropped")) +
+  scale_y_continuous(expand = c(0, 0))+
+  theme_VSR()
+
+fs_inter_bar
+
+ggsave("fs_inter_bar.png", plot = fs_inter_bar, device = "png", path = "~/Documents/",
+  width = 4, height = 3, units = c("in"),
+  dpi = 300)
+
+
+```
+
+
+
+

@@ -1,0 +1,967 @@
+---
+title: "Vital Signs Rwanda - Descriptives Master Sheet"
+author: "Rachel Kenny and Meghan Cook"
+date: "1/14/2019"
+output:
+  word_document: default
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+##Tables of Contents
+1. Data Wrangling
+2. Descriptives
+  a. Pesticide
+  b. Organic Fertilizer
+  c. Inorganic Fertilizer
+  d. Quantity of Crop Harvest
+  e. Reason for Intercropping
+  f. Soil Quality
+  g. Crop Residue Use
+  h. Food Loss
+
+---
+
+##Data Wrangling
+
+```{r}
+
+#load libraries
+library(tidyverse)
+library(dplyr)
+library(readr)
+library(ggplot2)
+library(broom)
+library(purrr)
+library(readr)
+library(RColorBrewer)
+library(coefplot)
+library(wesanderson)
+
+#load data
+fieldcrop <- read_csv(url("https://vitalsigns-website-downloads.s3.amazonaws.com/tables/household_field_season_fieldcrop.csv"))
+hh_fieldcrop <- read_csv(url("https://vitalsigns-website-downloads.s3.amazonaws.com/tables/household_fieldcrop.csv"))
+field_season <- read_csv(url("https://vitalsigns-website-downloads.s3.amazonaws.com/tables/household_field_season.csv"))
+hh_indiv <- read_csv(url("https://vitalsigns-website-downloads.s3.amazonaws.com/tables/household_individual.csv"))
+
+#View(household_field_season_fieldcrop)
+```
+
+
+```{r}
+#Filter fieldcrop, treat factors as factors and numeric as numeric
+fieldcrop <- dplyr::filter(fieldcrop, country == 'RWA', ag4a_15 != "na")
+fieldcrop$ag4a_08 <- as.numeric(fieldcrop$ag4a_08)
+fieldcrop$ag4a_15 <- as.numeric(fieldcrop$ag4a_15)
+fieldcrop$ag4a_15_unit <- as.factor(fieldcrop$ag4a_15_unit)
+fieldcrop$crop_name <- as.factor(fieldcrop$crop_name)
+fieldcrop$ag4a_15_unit[which(fieldcrop$ag4a_15_unit=="Liter")] <- "Kg" #because this is a misentry
+fieldcrop <- filter(fieldcrop, ag4a_15_unit == "Kg")
+
+#fix crop name mismatches
+fieldcrop$crop_name[which(fieldcrop$crop_name=="Irish potatoes")] <- "Irish Potatoes"
+fieldcrop$crop_name[which(fieldcrop$crop_name=="Blood fruit")] <- "Blood Fruit"  
+hh_fieldcrop$ag5a_21[which(hh_fieldcrop$ag5a_21=="Mammals (Rodent)")] <- "Rodents"
+
+#Filter field_season, treat factors as factors and numeric as numeric
+field_season <- filter(field_season, country == 'RWA',  ag3a_03 == 'Cultivated' )
+field_season$ag3a_39 <- as.factor(field_season$ag3a_39)
+field_season$ag3a_39a <- as.factor(field_season$ag3a_39a)
+field_season$ag3a_39a_other <- as.factor(field_season$ag3a_39a_other)
+field_season$ag3a_40 <- as.numeric(field_season$ag3a_40)
+field_season$ag3a_45 <- as.factor(field_season$ag3a_45)
+field_season$ag3a_47 <- as.factor(field_season$ag3a_47)
+
+#fix crop name mismatch
+field_season$ag3a_07_1[which(field_season$ag3a_07_1=="Irish potatoes")] <- "Irish Potatoes"
+field_season$ag3a_07_1[which(field_season$ag3a_07_1=="Blood fruit")] <- "Blood Fruit"
+
+#fset landscape # as factor in household survey data
+hh_fieldcrop$landscape_no <- as.factor(hh_fieldcrop$landscape_no)
+
+#Join fieldcrop and field_season dataframes
+joined_df <- inner_join(field_season, fieldcrop, by =c("id"= "parent_id", 'round', "landscape_no", "country", "field_no", "hh_refno", "season"))
+
+#Add columns for yield
+joined_df <- mutate(joined_df, kg_peracre = ag4a_15/ag4a_08)
+joined_df <- mutate(joined_df, kg_perha = kg_peracre*(1/.404686))
+
+#per acre planted 
+joined_df$ag4a_02[which(joined_df$ag4a_02=="1/4")] <- .25
+joined_df$ag4a_02[which(joined_df$ag4a_02=="1/2")] <- .5
+joined_df$ag4a_02[which(joined_df$ag4a_02=="3/4")] <- .75
+joined_df$ag4a_02[which(joined_df$ag4a_02=="Almost All")] <- 1
+joined_df$ag3a_40 <- as.numeric(joined_df$ag3a_40)
+joined_df$ag3a_47 <- as.numeric(joined_df$ag3a_47)
+joined_df$ag4a_02 <- as.numeric(joined_df$ag4a_02)
+joined_df$round <- as.factor(joined_df$round)
+
+joined_df <- mutate(joined_df, kg_peracre_planted = case_when(ag4a_01 == TRUE ~ kg_peracre, ag4a_01 == FALSE ~ ag4a_15/(ag4a_08*ag4a_02))) %>% 
+  mutate(kg_perha_planted = kg_peracre_planted *(1/.404686))
+
+#value per hectare planted 
+joined_df <- filter(joined_df, kg_perha_planted != Inf) %>% 
+  mutate(value_peracre = ag4a_16/ag4a_08) %>% 
+  mutate(value_perha = value_peracre*(1/.404686)) %>% 
+  mutate(value_peracre_planted = case_when(ag4a_01 == TRUE ~ value_peracre, ag4a_01 == FALSE ~ ag4a_16/ag4a_08*ag4a_02)) %>% 
+  mutate(value_perha_planted = value_peracre_planted *(1/.404686))
+
+
+#Add column for pesticide kg per hectare planted
+joined_df <-mutate(joined_df, pesticide_use_kg = ifelse(ag3a_60_2 == "Millilitre", ag3a_60_1*0.001, ag3a_60_1)) %>% 
+  mutate(pesticide_use_kg = case_when(ag3a_58 == TRUE ~ pesticide_use_kg, ag3a_58 == FALSE ~ 0)) %>% 
+  mutate(pest_peracre = pesticide_use_kg/ag4a_08) %>% 
+  mutate(pest_perha = pest_peracre*(1/.404686)) %>% 
+  mutate(pest_peracre_planted = case_when(ag4a_01 == TRUE ~ pest_peracre, ag4a_01 == FALSE ~ pest_peracre/ag4a_02)) %>% 
+  mutate(pest_perha_planted = pest_peracre_planted *(1/.404686))
+
+#Add column for inorg fert kg per hectare planted
+joined_df <- mutate(joined_df, inorg_peracre = ag3a_47/ag4a_08) %>% 
+  mutate(inorg_perha = inorg_peracre*(1/.404686)) %>%  
+  mutate(inorg_perha_planted = case_when(ag4a_01 == TRUE ~ inorg_perha, ag4a_01 == FALSE ~ inorg_perha/ag4a_02)) %>% 
+  mutate(inorg_perha_planted = case_when(ag3a_45 ==TRUE ~ inorg_perha_planted, ag3a_45 == FALSE ~ 0 ))
+
+#Add column for org fert kg per hectare planted
+joined_df <- mutate(joined_df, org_peracre = ag3a_40/ag4a_08) %>% 
+  mutate(org_perha = org_peracre*(1/.404686)) %>%
+  mutate(org_perha_planted = case_when(ag4a_01 == TRUE ~ org_peracre, ag4a_01 == FALSE ~ org_perha/ag4a_02)) %>% 
+  mutate(org_perha_planted = case_when(ag3a_39 ==TRUE ~ org_perha_planted, ag3a_39 == FALSE ~ 0 ))
+
+# Create df for each round
+round_1 <- filter(joined_df, round == "1")
+round_2 <- filter(joined_df, round == "2")
+
+# Rename landscape levels
+# joined_df_L <- joined_df
+# joined_df_L$landscape_no[which(joined_df_L$landscape_no=="L01")] <- "1"
+# joined_df_L$landscape_no[which(joined_df_L$landscape_no=="L02")] <- "2"
+# joined_df_L$landscape_no[which(joined_df_L$landscape_no=="L03")] <- "3"
+# joined_df_L$landscape_no[which(joined_df_L$landscape_no=="L04")] <- "4"
+# joined_df_L$landscape_no[which(joined_df_L$landscape_no=="L06")] <- "6"
+# joined_df_L$landscape_no[which(joined_df_L$landscape_no=="L07")] <- "7"
+# joined_df_L$landscape_no[which(joined_df_L$landscape_no=="L08")] <- "8"
+# joined_df_L$landscape_no[which(joined_df_L$landscape_no=="L10")] <- "10"
+# joined_df_L$landscape_no[which(joined_df_L$landscape_no=="L11")] <- "11"
+# joined_df_L$landscape_no[which(joined_df_L$landscape_no=="L12")] <- "12"
+
+
+#View(joined_df)
+#levels(joined_df$landscape_no)
+
+```
+
+---
+
+###Set style
+```{r}
+
+theme_vsr <- function () { 
+    theme_classic(base_size=9, base_family="Palatino")+
+    theme(plot.title = element_text(face="bold"), legend.title = element_text(face="bold"))
+}
+
+```
+
+
+##2. Descriptives
+
+###Crops grown across landscape
+```{r}
+
+A_crops_grown <- ggplot(filter(joined_df, crop_name != "NA"), aes(x= crop_name, fill=factor(landscape_no)))+
+ geom_bar(stat = "count", position = 'stack')+
+  theme_vsr()+
+ theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.3), plot.title = element_text(hjust = 0.5))+
+ xlab ("Crop Type")+
+ ylab("Number of Fields")+
+ ggtitle("Number of Fields Growing Each Crop Type per Landscape")+
+  scale_fill_manual(name="Landscape", labels=c("1", "2", "3", "4", "6", "7", "8", "10", "11", "12"), values = c("#a6cd5b", "#752559", "#72bad3", "#eb4024", "#a66f5b", "#449d8b", "#eb8932", "#2c6b96", "#e8af3c", "#9c8dc3"))+
+  scale_x_discrete(expand=c(0.03,0))+
+  scale_y_continuous(expand=c(0,0))
+
+A_crops_grown
+
+ggsave("A_crops_grown.png", plot = A_crops_grown, device = "png", path = "~/Documents/Bren/GP/3Graphs/Appendix/",
+  width = 6, height = 4.5, units = c("in"),
+  dpi = 300)
+
+```
+
+###Cause of Post-Harvest Food Loss
+```{r}
+
+A_food_loss <- 
+  ggplot(filter(hh_fieldcrop, ag5a_21 != "NA", country == 'RWA'), aes(x= ag5a_21, fill=factor(landscape_no)))+
+ geom_bar(stat = "count", position = 'stack')+
+  theme_vsr()+
+ theme(axis.text.x = element_text(angle = 90,  hjust = 1), plot.title = element_text(hjust = 0.5))+
+ xlab ("Cause of Food Loss")+
+ ylab("Number of Fields")+
+ ggtitle("Cause of Post-Harvest Food Loss by Landscape")+
+  scale_fill_manual(name="Landscape", labels=c("1", "2", "3", "4", "6", "7", "8", "10", "11", "12"), values = c("#a6cd5b", "#752559", "#72bad3", "#eb4024", "#a66f5b", "#449d8b", "#eb8932", "#2c6b96", "#e8af3c", "#9c8dc3"))+
+  scale_x_discrete(expand=c(0.03,0))+
+  scale_y_continuous(expand=c(0,0))
+
+A_food_loss
+
+ggsave("A_food_loss.png", plot = A_food_loss, device = "png", path = "~/Documents/Bren/GP/3Graphs/Appendix/",
+  width = 3.5, height = 4.5, units = c("in"),
+  dpi = 300)
+
+```
+
+###Soil quality bby landscape
+```{r}
+#Soil quality by landscape
+A_soil_quality <- ggplot(data = filter(joined_df, ag3a_10 != "NA"), aes(landscape_no, fill=ordered(ag3a_10))) +
+  geom_bar(stat="count", position = "fill")+
+  theme(plot.title = element_text(hjust = 0.5, face="bold"), legend.title=element_text(face="bold"), axis.title=element_text(face="bold"))+
+  xlab("Landscape")+
+  ylab("Soil Quality (as reported by farmers)")+
+  ggtitle("Soil Quality By Landscape")+
+  scale_fill_manual(name="Soil Quality", labels =c("Good", "Average", "Bad"), values = c("#449d8b", "#e8af3c", "#eb4024"))  +
+  theme_vsr()+
+  scale_y_continuous(expand=c(0,0))
+
+ggsave("A_soil_quality.png", plot = A_soil_quality, device = "png", path = "~/Documents/Bren/GP/3Graphs/Appendix/",
+  width = 4.5, height = 3, units = c("in"),
+  dpi = 300)
+```
+
+###Reason for Intercropping
+```{r}
+# Reason for intercropping
+A_reason_inter <- ggplot(data=filter(joined_df, ag4a_05 != "NA"), aes(x=ag4a_05, fill=landscape_no))+
+  geom_bar(stat="count")+
+  xlab("Reason for Intercropping")+
+  ylab("Count")+
+  ggtitle("Household Survey of Reported Reasons for Intercropping")+
+  scale_fill_manual(name="Landscape", labels=c("1", "2", "3", "4", "6", "7", "8", "10", "11", "12"), values = c("#a6cd5b", "#752559", "#72bad3", "#eb4024", "#a66f5b", "#449d8b", "#eb8932", "#2c6b96", "#e8af3c", "#9c8dc3"))+
+  scale_y_continuous(expand=c(0,0))+
+  theme_vsr()
+
+A_reason_inter
+
+ggsave("A_reason_inter.png", plot = A_reason_inter, device = "png", path = "~/Documents/Bren/GP/3Graphs/Appendix/",
+  width = 6, height = 3.5, units = c("in"),
+  dpi = 300)
+
+```
+
+
+
+
+
+###Use of inputs by landscape and round
+
+####Inorganic Fertilizer
+```{r}
+
+A_crop_inorg_fert <- ggplot(data=joined_df, aes(x=ag3a_07_1, y=ag3a_47, fill=ag3a_46))+
+  geom_bar(stat="identity")+
+  xlab("Crop type")+
+  ylab("Total amount of inorganic fertilizer applied (kg)")+
+  ggtitle("Inorganic Fertilizer Use by Main Crop Type (Both Rounds)")+
+  theme_vsr()+
+  theme(axis.text.x = element_text(angle = 90, vjust = .4, hjust = 1))+
+  scale_y_continuous(expand=c(0,0))+
+  scale_fill_manual(name ="Fertilizer type", values = wes_palette("Darjeeling1"))
+
+A_crop_inorg_fert
+
+ggsave("A_crop_inorg_fert.png", plot = A_crop_inorg_fert, device = "png", path = "~/Documents/Bren/GP/3Graphs/Appendix/",
+  width = 6.25, height = 4, units = c("in"),
+  dpi = 300)
+
+
+A_landscape_inorg_fert <- ggplot(data=joined_df, aes(x=landscape_no, y=ag3a_47, fill=round))+
+  geom_bar(stat="identity",position="stack")+
+  xlab("Landscape")+
+  ylab("Total amount of inorganic fertilizer applied (kg)")+
+  ggtitle("Inorganic Fertilizer Use by Landscape and Round")+
+  scale_y_continuous(expand=c(0,0))+
+  scale_x_discrete(labels=c("1", "2", "3", "4", "6", "7", "8", "10", "11", "12"))+
+  theme_vsr()+
+  scale_fill_manual(values =c("#72bad3", "#e8af3c"), name = "Round")
+
+A_landscape_inorg_fert
+
+ggsave("A_landscape_inorg_fert.png", plot = A_landscape_inorg_fert, device = "png", path = "~/Documents/Bren/GP/3Graphs/Appendix/",
+  width = 4.5, height = 3.5, units = c("in"),
+  dpi = 300)
+
+```
+
+
+####Organic Fertilizer
+```{r}
+
+A_crop_org_fert <- ggplot(data=joined_df, aes(x=ag3a_07_1, y=ag3a_40, fill=ag3a_39a))+
+  geom_bar(stat="identity")+
+  xlab("Crop type")+
+  ylab("Total amount of organic fertilizer applied (kg)")+
+  ggtitle("Organic Fertilizer Use by Main Crop Type (Both Rounds)")+
+  theme_vsr()+
+  theme(axis.text.x = element_text(angle = 90, vjust = .4, hjust = 1))+
+  scale_y_continuous(expand=c(0,0))+
+  scale_fill_manual(name ="Fertilizer type", values = wes_palette("Darjeeling1"))
+
+A_crop_org_fert
+
+ggsave("A_crop_org_fert.png", plot = A_crop_org_fert, device = "png", path = "~/Documents/Bren/GP/3Graphs/Appendix/",
+  width = 5.7, height = 4, units = c("in"),
+  dpi = 300)
+
+
+A_landscape_org_fert <- ggplot(data=joined_df, aes(x=landscape_no, y=ag3a_40, fill=round))+
+  geom_bar(stat="identity",position="stack")+
+  xlab("Landscape")+
+  ylab("Total amount of organic fertilizer applied (kg)")+
+  ggtitle("Organic Fertilizer Use by Landscape and Round")+
+  scale_y_continuous(expand=c(0,0))+
+  scale_x_discrete(labels=c("1", "2", "3", "4", "6", "7", "8", "10", "11", "12"))+
+  theme_vsr()+
+  scale_fill_manual(values =c("#72bad3", "#e8af3c"), name = "Round")
+
+A_landscape_org_fert
+
+ggsave("A_landscape_org_fert.png", plot = A_landscape_org_fert, device = "png", path = "~/Documents/Bren/GP/3Graphs/Appendix/",
+  width = 4.7, height = 3.5, units = c("in"),
+  dpi = 300)
+
+```
+
+####Pesticides
+```{r}
+
+A_crop_pest <- ggplot(data=joined_df, aes(x=ag3a_07_1, y=ag3a_60_1, fill=ag3a_59))+
+  geom_bar(stat="identity")+
+  xlab("Crop type")+
+  ylab("Total amount of pesticides applied (kg)")+
+  ggtitle("Pesticide Use by Main Crop Type (Both Rounds)")+
+  theme_vsr()+
+  theme(axis.text.x = element_text(angle = 90, vjust = .4, hjust = 1))+
+  scale_y_continuous(expand=c(0,0))+
+  scale_fill_manual(name ="Pesticide type", values = wes_palette("Darjeeling1"))
+
+A_crop_pest
+
+ggsave("A_crop_pest.png", plot = A_crop_pest, device = "png", path = "~/Documents/Bren/GP/3Graphs/Appendix/",
+  width = 5.25, height = 4, units = c("in"),
+  dpi = 300)
+
+
+A_landscape_pest <- ggplot(data=joined_df, aes(x=landscape_no, y=ag3a_60_1, fill=round))+
+  geom_bar(stat="identity",position="stack")+
+  xlab("Landscape")+
+  ylab("Total amount of pesticides applied (kg)")+
+  ggtitle("Organic Fertilizer Use by Landscape and Round")+
+  scale_y_continuous(expand=c(0,0))+
+  scale_x_discrete(labels=c("1", "2", "3", "4", "6", "7", "8", "10", "11", "12"))+
+  theme_vsr()+
+  scale_fill_manual(values =c("#72bad3", "#e8af3c"), name = "Round")
+
+A_landscape_pest
+
+ggsave("A_landscape_pest.png", plot = A_landscape_pest, device = "png", path = "~/Documents/Bren/GP/3Graphs/Appendix/",
+  width = 4.5, height = 3.5, units = c("in"),
+  dpi = 300)
+
+```
+
+
+
+
+
+
+
+
+######################
+
+
+
+
+
+
+
+
+
+
+#a. PESTICIDE
+
+Pesticide Use
+
+#Explore pesticide use
+```{r}
+
+#Pesticide use (ag3a_58) (Yes/No) across everything
+ggplot(data=joined_df, aes(ag3a_58))+
+  geom_bar()+
+  xlab("Was Any Pesticide/Herbicide Used On This Field?")+
+  ylab("Number of Responses")+
+  ggtitle("Total Use of Pesticides and Herbicides (All Landscapes/Rounds)")
+
+```
+
+#pesticide use (Yes/No) disaggregated by round
+```{r}
+
+#round 1
+pesticide_r1 <- dplyr::filter(joined_df, round == "1")
+ggplot(data=pesticide_r1, aes(ag3a_58))+
+  geom_bar()+
+  xlab("Was Any Pesticide/Herbicide Used On This Field?")+
+  ylab("Number of Responses")+
+  ggtitle("Total Use of Pesticides and Herbicides, Round 1 (All Landscapes)")
+
+#round 2
+pesticide_r2 <- dplyr::filter(joined_df, round == "2")
+ggplot(data=pesticide_r2, aes(ag3a_58))+
+  geom_bar()+
+  xlab("Was Any Pesticide/Herbicide Used On This Field?")+
+  ylab("Number of Responses")+
+  ggtitle("Total Use of Pesticides and Herbicides, Round 2 (All Landscapes)")
+
+#percentages of households using pesticide (total and by round)
+table(joined_df$ag3a_58)
+#F 2158 (%), T 216 (%)
+table(round_1$ag3a_58)
+#F 675 (%), T 103 (%)
+table(round_2$ag3a_58)
+#F 1483 (%), T 113 (%)
+
+```
+
+#explore types of pesticides used
+```{r}
+
+#total use of pesticide (Yes/No) by type 
+ggplot(data=joined_df, aes(ag3a_59))+
+  geom_bar()+
+  xlab("Main type of pesticide/herbicide")+
+  ylab("Number of Responses")+
+  ggtitle("Total Use of Types of Pesticides and Herbicides (All Landscapes/Rounds)")
+
+#remove the NA's (people who did not use pesticide)
+pesticide_sans_na <- dplyr::filter(joined_df, ag3a_59 != "na")
+
+#total use of pesticide by type, minus NA's
+ggplot(data=pesticide_sans_na, aes(ag3a_59))+
+  geom_bar()+
+  xlab("Main type of pesticide/herbicide")+
+  ylab("Number of Responses")+
+  ggtitle("Total Use of Types of Pesticides and Herbicides (All Landscapes/Rounds)")
+
+#conclusion: predominantly pesticides, little herbicide or fungicide
+```
+
+#explore the amount of pesticide used in kg
+```{r}
+
+#note some missing data for the amount of pesticide used
+
+#####
+#total amount of pesticide used in kg, by landscape and round
+ggplot(data=joined_df, aes(x=landscape_no, y=pesticide_use_kg, fill=round))+
+  geom_bar(stat="identity",position=position_dodge())+
+  xlab("Landscape")+
+  ylab("Amount of Pesticide Used (Kg)")+
+  ggtitle("Use of Pesticide by Landscape and Round")
+
+#Landscape 1 round 1 is so high due to 1 750kg entry. Might be an outlier, let's remove.
+table(joined_df$pesticide_use_kg)
+pesticide_outlier <- dplyr::filter(joined_df, pesticide_use_kg == "750")
+pesticide_remove_outliers <- dplyr::filter(joined_df, pesticide_use_kg < 750)
+
+#same graph, but with the outlier in landscape 1, round 1 removed
+ggplot(data=pesticide_remove_outliers, aes(x=landscape_no, y=pesticide_use_kg, fill=round))+
+  geom_bar(stat="identity",position=position_dodge())+
+  xlab("Landscape")+
+  ylab("Pesticide Use (Kg)")+
+  ggtitle("Use of Pesticide by Landscape and Round (> 749 Kg Removed)")
+
+```
+
+#explore proportion of amount of pesticide used by type, landscape
+```{r}
+
+#proportion of different types of pesticide by landscape
+ggplot(data=joined_df, aes(x=landscape_no, y=pesticide_use_kg, fill=ag3a_59))+
+  geom_bar(stat="identity",position = "fill")+
+  xlab("Landscape")+
+  ylab("Proportion of Type of Pesticed Used")+
+  ggtitle("Type of Pesticide by Landscape (Both Rounds)")
+
+#same graph, outlier removed
+ggplot(data=pesticide_remove_outliers, aes(x=landscape_no, y=pesticide_use_kg, fill=ag3a_59))+
+  geom_bar(stat="identity",position = "fill")+
+  xlab("Landscape")+
+  ylab("Proportion of Type of Pesticed Used")+
+  ggtitle("Type of Pesticide by Landscape (Both Rounds, Outlier Removed)")
+```
+
+#explore total pesticide used (kg) by main crop type
+```{r}
+
+#pesticide use (kg) by main crop type
+ggplot(data=joined_df, aes(x=ag3a_07_1, y=pesticide_use_kg))+
+  geom_bar(stat="identity")+
+  xlab("Main Crop on Field")+
+  ylab("Amount of Pesticide Used (All Types, Kg)")+
+  ggtitle("Pesticide Use by Main Crop Type (Both Rounds)")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+#pesticide use by main crop type, pesticide type
+ggplot(data=joined_df, aes(x=ag3a_07_1, y=pesticide_use_kg, fill=ag3a_59))+
+  geom_bar(stat="identity")+
+  xlab("Main Crop on Field")+
+  ylab("Amount of Pesticide Used (Kg)")+
+  ggtitle("Pesticide Use by Type and Main Crop Type (Both Rounds)")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+
+#b. ORGANIC FERTILIZER
+
+
+#explore fert use (Yes/No)
+```{r}
+##BOTH ROUNDS#####
+table(joined_df$ag3a_39)
+#did you use organic fertilizer on this field?
+#40% False, 60% True
+
+ggplot(data=joined_df, aes(ag3a_39))+
+  geom_bar()+
+  xlab("Was Any Organic Fertilizer Used On This Field?")+
+  ylab("Number of Responses")+
+  ggtitle("Total Use of Organic Fertilizer (All Landscapes/Rounds)")
+
+##ROUND 1#####
+table(round_1$ag3a_39)
+#did you use organic fertilizer on this field?
+#42% False, 58% True
+
+ggplot(data=round_1, aes(ag3a_39))+
+  geom_bar()+
+  xlab("Was Any Organic Fertilizer Used On This Field?")+
+  ylab("Number of Responses")+
+  ggtitle("Total Use of Organic Fertilizer, Round 1 (All Landscapes)")
+
+##ROUND 2#####
+table(round_2$ag3a_39)
+#did you use organic fertilizer on this field?
+#40% False, 60% True
+
+ggplot(data=round_2, aes(ag3a_39))+
+  geom_bar()+
+  xlab("Was Any Organic Fertilizer Used On This Field?")+
+  ylab("Number of Responses")+
+  ggtitle("Total Use of Organic Fertilizer, Round 2 (All Landscapes)")
+
+```
+
+#explore types of org fert (ag3a_39a)
+```{r}
+
+#table of types of organic fertilizer
+table(joined_df$ag3a_39a)
+#Animal Manure: 97%
+
+#Total use of organic fertilizer by type
+ggplot(data=joined_df, aes(ag3a_39a))+
+  geom_bar()+
+  xlab("Main Source of Organic Fertilizer")+
+  ylab("Number of Responses")+
+  ggtitle("Total Use of Source of Organic Fertilizer (All Landscapes/Rounds)")
+
+```
+
+#explore amount of org fert used (kg) 
+```{r}
+
+#total amount of fertilizer used in kg, by landscape and round
+ggplot(data=joined_df, aes(x=landscape_no, y=ag3a_40, fill=round))+
+  geom_bar(stat="identity",position="stack")+
+  xlab("Landscape")+
+  ylab("Organic Fertilizer Use (Kg)")+
+  ggtitle("Organic Fertilizer Use by Landscape and Round")+
+  theme_vsr()
+
+```
+
+#explored amount of org fert used (kg) by crop
+```{r fertilizer_by_main_crop}
+
+#organic fertilizer used by main crop, organic fertilizer type
+ggplot(data=joined_df, aes(x=ag3a_07_1, y=ag3a_40, fill=ag3a_39a))+
+  geom_bar(stat="identity")+
+  xlab("Main Crop on Field")+
+  ylab("Amount of Organic Fertilizer Used (Kg)")+
+  ggtitle("Organic Fertilizer Use by Main Crop Type (Both Rounds)")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+
+#c. INORGANIC FERTILIZER
+
+
+Explore use of inorganic fertilizer (Yes/No)
+```{r}
+
+table(joined_df$ag3a_45)
+#17% used inorganic fertilizer (both rounds, all landscapes)
+
+#Use of in-fert across all landscapes/rounds
+ggplot(data=joined_df, aes(ag3a_45))+
+  geom_bar()+
+  xlab("Was Any Inorganic Fertilizer Used On This Field?")+
+  ylab("Number of Responses")+
+  ggtitle("Total Use of Inorganic Fertilizer (All Landscapes/Rounds)")
+
+### Use in round 1 ###
+
+table(round_1$ag3a_45)
+#16% used inorganic fert in round 1
+
+ggplot(data=round_1, aes(ag3a_45))+
+  geom_bar()+
+  xlab("Was Any Inorganic Fertilizer Used On This Field?")+
+  ylab("Number of Responses")+
+  ggtitle("Total Use of Inorganic Fertilizer, Round 1 (All Landscapes)")
+
+### Use in round 2 ###
+
+table(round_2$ag3a_45)
+#18% used inorganic fert in round 2
+
+ggplot(data=round_2, aes(ag3a_45))+
+  geom_bar()+
+  xlab("Was Any Inorganic Fertilizer Used On This Field?")+
+  ylab("Number of Responses")+
+  ggtitle("Total Use of Inorganic Fertilizer, Round 2 (All Landscapes)")
+
+### Mean amount of inorganic fertilizer used ###
+
+mean(joined_df$ag3a_47, na.rm = TRUE)
+#mean inorg fert used: 16 Kg
+
+```
+
+#Explore types of inorganic fertilizer
+```{r}
+
+#table of types of inorganic fertilizer
+table(joined_df$ag3a_46)
+
+#remove NA entries for infert
+infert_type_df <- dplyr::filter(joined_df, ag3a_46 != "NA")
+
+#plot types of infert
+ggplot(data=infert_type_df, aes(ag3a_46))+
+  geom_bar()+
+  xlab("Main Type of Inorganic Fertilizer Used")+
+  ylab("Number of Responses")+
+  ggtitle("Total Use of Type of Inorganic Fertilizer (All Landscapes/Rounds)")+
+  theme(axis.text.x = element_text(angle = 10, hjust = 1))
+
+```
+
+#Explore amount of inorganic fertilizer used by landscape and round
+```{r}
+
+#total amount of fertilizer used in kg, by landscape and round
+ggplot(data=joined_df, aes(x=landscape_no, y=ag3a_47, fill=round))+
+  geom_bar(stat="identity",position="stack")+
+  xlab("Landscape")+
+  ylab("Inorganic Fertilizer Use (Kg)")+
+  ggtitle("Inorganic Fertilizer Use by Landscape and Round")
+
+#Proportion of type of inorganic fertilizer used by landscape
+ggplot(data=joined_df, aes(x=landscape_no, y=ag3a_47, fill=ag3a_46))+
+  geom_bar(stat="identity",position = "fill")+
+  xlab("Landscape")+
+  ylab("Proportion of Type of Inorganic Fertilizer Used")+
+  ggtitle("Type of Inorganic Fertilizer by Landscape (Both Rounds)")
+
+```
+
+#Explore inorganic crop use by main crop type, fertilizer type
+```{r}
+
+ggplot(data=joined_df, aes(x=ag3a_07_1, y=ag3a_47, fill=ag3a_46))+
+  geom_bar(stat="identity")+
+  xlab("Main Crop on Field")+
+  ylab("Amount of Inorganic Fertilizer Used (Kg)")+
+  ggtitle("Inorganic Fertilizer Use by Main Crop Type (Both Rounds)")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+
+#d. Quantity of Crop Harvest
+
+
+```{r}
+
+#Sum kg for crops 
+totalharvest_graph <- aggregate(ag4a_15 ~ crop_name, fieldcrop, sum) 
+area_harvestgraph <- aggregate(kg_perha_planted ~ crop_name, joined_df, sum)
+
+#Quantity of Crop Harvest (kg)
+ggplot(totalharvest_graph, aes(x= crop_name, y= ag4a_15))+
+  geom_bar(stat = "identity")+
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.3))+
+  xlab ("Crop")+
+  ylab("Total Harvest (kg)")+
+  ggtitle("Quantity of Crop Harvest (kg)")
+
+#Quantity of Harvest by kg/Hectare
+ggplot(area_harvestgraph, aes(x= crop_name, y= kg_perha_planted))+
+  geom_bar(stat = "identity")+
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.3))+
+  xlab("Crop Name")+
+  ylab("Kilograms of Harvest per Hectare Planted")+
+  ggtitle("Quantity of Crop Harvest (kg/hectare planted)")
+
+#Count of Total Crop Harvest by Landscape
+ggplot(fieldcrop, aes(x= crop_name, fill=factor(landscape_no)))+
+ geom_bar(stat = "count", position = 'stack')+
+ theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.3), plot.title = element_text(hjust = 0.5, face="bold"), legend.title=element_text(face="bold"), axis.title=element_text(face="bold"))+
+ xlab ("Crop")+
+ ylab("Total Harvest (kg)")+
+ ggtitle("Quantity of Total Crop Harvest by Landscape")+
+  scale_fill_discrete(name = "Landscape",
+labels = c("Nyungwe", "Volcanoes", "Akagera", "Gishwati", "Muhanga-Kamonyi", "Bugesera"))
+
+#Crop Yield by Landscape (kg/hectare planted)
+ggplot(joined_df, aes(x= crop_name, y= kg_perha_planted, fill=factor(landscape_no)))+
+ geom_bar(stat = "identity", position = 'stack')+
+ theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust=.3), plot.title = element_text(hjust = 0.5, face="bold"), legend.title=element_text(face="bold"), axis.title=element_text(face="bold"))+
+ xlab ("Crop")+
+ ylab("Yield of Harvest (kg/ha planted)")+
+ ggtitle("Yield by Crop Type")+
+  scale_fill_discrete(name = "Landscape",
+labels = c("Nyungwe", "Volcanoes", "Akagera", "Gishwati", "Muhanga-Kamonyi", "Bugesera"))
+
+#Isolate landscape dfs and make graphs by landscape. Both rounds included in these graphs
+fieldcrop_L01 <- dplyr::filter(fieldcrop, country == 'RWA', ag4a_15_unit == 'Kg', ag4a_15 != "na", landscape_no =='L01')
+fieldcrop_L02 <- dplyr::filter(fieldcrop, country == 'RWA', ag4a_15_unit == 'Kg', ag4a_15 != "na", landscape_no =='L02')
+fieldcrop_L03 <- dplyr::filter(fieldcrop, country == 'RWA', ag4a_15_unit == 'Kg', ag4a_15 != "na", landscape_no =='L03')
+fieldcrop_L04 <- dplyr::filter(fieldcrop, country == 'RWA', ag4a_15_unit == 'Kg', ag4a_15 != "na", landscape_no =='L04')
+fieldcrop_L06 <- dplyr::filter(fieldcrop, country == 'RWA', ag4a_15_unit == 'Kg', ag4a_15 != "na", landscape_no =='L06')
+fieldcrop_L07 <- dplyr::filter(fieldcrop, country == 'RWA', ag4a_15_unit == 'Kg', ag4a_15 != "na", landscape_no =='L07')
+fieldcrop_L08 <- dplyr::filter(fieldcrop, country == 'RWA', ag4a_15_unit == 'Kg', ag4a_15 != "na", landscape_no =='L08')
+fieldcrop_L10 <- dplyr::filter(fieldcrop, country == 'RWA', ag4a_15_unit == 'Kg', ag4a_15 != "na", landscape_no =='L10')
+fieldcrop_L11 <- dplyr::filter(fieldcrop, country == 'RWA', ag4a_15_unit == 'Kg', ag4a_15 != "na", landscape_no =='L11')
+fieldcrop_L12 <- dplyr::filter(fieldcrop, country == 'RWA', ag4a_15_unit == 'Kg', ag4a_15 != "na", landscape_no =='L12')
+
+totalharvest_L01 <- aggregate(ag4a_15 ~ crop_name, fieldcrop_L01, sum) # sum kg for crops 
+totalharvest_L02 <- aggregate(ag4a_15 ~ crop_name, fieldcrop_L02, sum) # sum kg for crops 
+totalharvest_L03 <- aggregate(ag4a_15 ~ crop_name, fieldcrop_L03, sum) # sum kg for crops 
+totalharvest_L04 <- aggregate(ag4a_15 ~ crop_name, fieldcrop_L04, sum) # sum kg for crops 
+totalharvest_L06 <- aggregate(ag4a_15 ~ crop_name, fieldcrop_L06, sum) # sum kg for crops 
+totalharvest_L07 <- aggregate(ag4a_15 ~ crop_name, fieldcrop_L07, sum) # sum kg for crops 
+totalharvest_L08 <- aggregate(ag4a_15 ~ crop_name, fieldcrop_L08, sum) # sum kg for crops 
+totalharvest_L10 <- aggregate(ag4a_15 ~ crop_name, fieldcrop_L10, sum) # sum kg for crops 
+totalharvest_L11 <- aggregate(ag4a_15 ~ crop_name, fieldcrop_L11, sum) # sum kg for crops 
+totalharvest_L12 <- aggregate(ag4a_15 ~ crop_name, fieldcrop_L12, sum) # sum kg for crops 
+
+#Quantity of harvest by landscape
+ggplot(totalharvest_L01, aes(x= crop_name, y= ag4a_15))+
+  geom_bar(stat = "identity")+
+  xlab ("Crop")+
+  ylab("Total Harvest (kg)")+
+  ggtitle("Quantity of Crop Harvest for Nyungwe")+
+  theme(axis.text.x = element_text(angle = 90, hjust = 1), plot.title = element_text(hjust = 0.5, face="bold"), legend.title=element_text(face="bold"), axis.title=element_text(face="bold"))
+
+ggplot(totalharvest_L02, aes(x= crop_name, y= ag4a_15))+
+  geom_bar(stat = "identity")+
+  xlab ("Crop")+
+  ylab("Total Harvest (kg)")+
+  ggtitle("Quantity of Crop Harvest for Volcanoes")+
+  theme(axis.text.x = element_text(angle = 90, hjust = 1), plot.title = element_text(hjust = 0.5, face="bold"), legend.title=element_text(face="bold"), axis.title=element_text(face="bold"))
+
+ggplot(totalharvest_L03, aes(x= crop_name, y= ag4a_15))+
+  geom_bar(stat = "identity")+
+  xlab ("Crop")+
+  ylab("Total Harvest (kg)")+
+  ggtitle("Quantity of Crop Harvest for Akagera")+
+  theme(axis.text.x = element_text(angle = 90, hjust = 1), plot.title = element_text(hjust = 0.5, face="bold"), legend.title=element_text(face="bold"), axis.title=element_text(face="bold"))
+
+ggplot(totalharvest_L04, aes(x= crop_name, y= ag4a_15))+
+  geom_bar(stat = "identity")+
+  xlab ("Crop")+
+  ylab("Total Harvest (kg)")+
+  ggtitle("Quantity of Crop Harvest for Gishwati")+
+  theme(axis.text.x = element_text(angle = 90, hjust = 1), plot.title = element_text(hjust = 0.5, face="bold"), legend.title=element_text(face="bold"), axis.title=element_text(face="bold"))
+
+ggplot(totalharvest_L06, aes(x= crop_name, y= ag4a_15))+
+  geom_bar(stat = "identity")+
+  xlab ("Crop")+
+  ylab("Total Harvest (kg)")+
+  ggtitle("Quantity of Crop Harvest for Muhanga-Kamonyi")+
+  theme(axis.text.x = element_text(angle = 90, hjust = 1), plot.title = element_text(hjust = 0.5, face="bold"), legend.title=element_text(face="bold"), axis.title=element_text(face="bold"))
+
+ggplot(totalharvest_L07, aes(x= crop_name, y= ag4a_15))+
+  geom_bar(stat = "identity")+
+  xlab ("Crop")+
+  ylab("Total Harvest (kg)")+
+  ggtitle("Quantity of Crop Harvest for Bugesera")+
+  theme(axis.text.x = element_text(angle = 90, hjust = 1), plot.title = element_text(hjust = 0.5, face="bold"), legend.title=element_text(face="bold"), axis.title=element_text(face="bold"))
+
+ggplot(totalharvest_L08, aes(x= crop_name, y= ag4a_15))+
+  geom_bar(stat = "identity")+
+  xlab ("Crop")+
+  ylab("Total Harvest (kg)")+
+  ggtitle("Quantity of Crop Harvest for L08")+
+  theme(axis.text.x = element_text(angle = 90, hjust = 1), plot.title = element_text(hjust = 0.5, face="bold"), legend.title=element_text(face="bold"), axis.title=element_text(face="bold"))
+
+ggplot(totalharvest_L10, aes(x= crop_name, y= ag4a_15))+
+  geom_bar(stat = "identity")+
+  xlab ("Crop")+
+  ylab("Total Harvest (kg)")+
+  ggtitle("Quantity of Crop Harvest for L10")+
+  theme(axis.text.x = element_text(angle = 90, hjust = 1), plot.title = element_text(hjust = 0.5, face="bold"), legend.title=element_text(face="bold"), axis.title=element_text(face="bold"))
+
+ggplot(totalharvest_L11, aes(x= crop_name, y= ag4a_15))+
+  geom_bar(stat = "identity")+
+  xlab ("Crop")+
+  ylab("Total Harvest (kg)")+
+  ggtitle("Quantity of Crop Harvest for L11")+
+  theme(axis.text.x = element_text(angle = 90, hjust = 1), plot.title = element_text(hjust = 0.5, face="bold"), legend.title=element_text(face="bold"), axis.title=element_text(face="bold"))
+
+ggplot(totalharvest_L12, aes(x= crop_name, y= ag4a_15))+
+  geom_bar(stat = "identity")+
+  xlab ("Crop")+
+  ylab("Total Harvest (kg)")+
+  ggtitle("Quantity of Crop Harvest for L12")+
+  theme(axis.text.x = element_text(angle = 90, hjust = 1), plot.title = element_text(hjust = 0.5, face="bold"), legend.title=element_text(face="bold"), axis.title=element_text(face="bold"))
+
+
+```
+
+
+#e. Reason for Intercropping
+
+
+```{r}
+
+library(RColorBrewer)
+
+
+  
+ggplot(data=filter(joined_df, ag4a_05 != "NA"), aes(x=ag4a_05))+
+  geom_bar(stat="count")+
+  xlab("Reason for Intercropping")+
+  ylab("Frequency")+
+  ggtitle("Household Survey of Reported Reasons for Intercropping")+
+  scale_fill_manual(values=c("firebrick1", "darkorange", "deepskyblue3"))+
+  theme_minimal()
+
+plot
+
+#ag4a_05 - What is the reason for this intercropping?
+
+```
+
+
+#f. Soil Quality
+
+
+```{r}
+
+#intercrop subset
+jdf_intercrop <- filter(joined_df, crop_name == "Irish Potatoes" | crop_name == "Maize" | crop_name == "Sorghum" | crop_name == "Sweet Potatoes" | crop_name == "Banana Beer" | crop_name == "Banana Food" | crop_name == "Beans" | crop_name == "Field Peas")
+
+#Soil quality as a function of intercropping
+ggplot(data = filter(jdf_intercrop, ag3a_10 != "NA"), aes(ag4a_04, fill=ordered(ag3a_10, levels=c("Good", "Average", "Bad")))) +
+  geom_bar(stat="count", position = "fill")+
+  theme(plot.title = element_text(hjust = 0.5, face="bold"), legend.title=element_text(face="bold"), axis.title=element_text(face="bold"))+
+  xlab("Plot Was Intercropped?")+
+  ylab("Soil Quality (as reported by farmers)")+
+  ggtitle("Soil Quality as a Function of Intercropping")+
+  scale_fill_discrete(name="Soil Quality", labels =c("Good", "Average", "Bad"))
+
+#Soil quality by landscape
+ggplot(data = filter(joined_df, ag3a_10 != "NA"), aes(landscape_no, fill=ordered(ag3a_10))) +
+  geom_bar(stat="count", position = "fill")+
+  theme(plot.title = element_text(hjust = 0.5, face="bold"), legend.title=element_text(face="bold"), axis.title=element_text(face="bold"))+
+  xlab("Landscape")+
+  ylab("Soil Quality (as reported by farmers)")+
+  ggtitle("Soil Quality By Landscape")+
+  scale_fill_discrete(name="Soil Quality", labels =c("Good", "Average", "Bad"))  
+
+```
+
+
+#g. Crop residue use
+
+
+```{r}
+#Crop residue use in Rwanda
+ggplot(filter(hh_fieldcrop, country == 'RWA', ag5a_24 != "NA"), aes(ag5a_24)) + geom_histogram(stat = "count", bins = 20) +
+ ggtitle("Crop residue use") + theme(axis.title.x=element_blank(), axis.text.x = element_text(angle = 90, hjust = 1, vjust=.3), plot.title = element_text(hjust = 0.5, face="bold"), legend.title=element_text(face="bold"), axis.title=element_text(face="bold"))
+
+#Crop residue use as a function of country
+ggplot(filter(hh_fieldcrop, ag5a_24 != "NA"), aes(ag5a_24)) + geom_histogram(stat = "count", bins = 20) +
+ ggtitle("Crop residue use") + theme(axis.title.x=element_blank(), axis.text.x = element_text(angle = 90, hjust = 1, vjust=.3), plot.title = element_text(hjust = 0.5, face="bold"), legend.title=element_text(face="bold"), axis.title=element_text(face="bold"))+facet_grid(.~country)
+
+#Crop residue use by landscape in Rwanda
+ggplot(filter(hh_fieldcrop, country == 'RWA', ag5a_24 != "NA"), aes(x= ag5a_24, fill=factor(landscape_no)))+
+ geom_bar(stat = "count", position = 'stack')+
+  theme_classic()+
+ theme(axis.text.x = element_text(angle = 60,  hjust = 1), plot.title = element_text(hjust = 0.5, face="bold"), legend.title=element_text(face="bold"), axis.title=element_text(face="bold"))+
+ xlab ("Crop residue use")+
+ ylab("Count")+
+ ggtitle("Crop residue use by Landscape")+
+  scale_fill_discrete(name = "Landscape")
+
+```
+
+
+#h. Food Loss
+
+
+```{r}
+
+#histogram food loss in Rwanda
+ggplot(filter(hh_fieldcrop, ag5a_21 != "NA", country == 'RWA'), aes(ag5a_21)) + geom_histogram(stat = "count", bins = 20) +
+ ggtitle("Cause of Food Loss") + theme(axis.title.x=element_blank(), axis.text.x = element_text(angle = 90, hjust = 1, vjust=.3), plot.title = element_text(hjust = 0.5, face="bold"), legend.title=element_text(face="bold"), axis.title=element_text(face="bold"))
+
+#histogram food loss ~ country
+ggplot(filter(hh_fieldcrop, ag5a_21 != "NA"), aes(ag5a_21)) + geom_histogram(stat = "count", bins = 20) +
+ ggtitle("Cause of Food Loss") + theme(axis.title.x=element_blank(), axis.text.x = element_text(angle = 90, hjust = 1, vjust=.3), plot.title = element_text(hjust = 0.5, face="bold"), legend.title=element_text(face="bold"), axis.title=element_text(face="bold"))+facet_grid(.~country)
+
+#histogram food loss ~ landscape
+ggplot(filter(hh_fieldcrop, ag5a_21 != "NA", country == 'RWA'), aes(ag5a_21)) + geom_histogram(stat = "count", bins = 20) +
+ ggtitle("Cause of Food Loss") + theme(axis.title.x=element_blank(), axis.text.x = element_text(angle = 90, hjust = 1, vjust=.3), plot.title = element_text(hjust = 0.5, face="bold"), legend.title=element_text(face="bold"), axis.title=element_text(face="bold"))+facet_grid(.~landscape_no)
+
+#stacked bar graph food loss ~ landscape
+ggplot(filter(hh_fieldcrop, ag5a_21 != "NA", country == 'RWA'), aes(x= ag5a_21, fill=factor(landscape_no)))+
+ geom_bar(stat = "count", position = 'stack')+
+  theme_classic()+
+ theme(axis.text.x = element_text(angle = 45,  hjust = 1), plot.title = element_text(hjust = 0.5, face="bold"), legend.title=element_text(face="bold"), axis.title=element_text(face="bold"))+
+ xlab ("Cause of Food Loss")+
+ ylab("Count")+
+ ggtitle("Cause of Post-Harvest Food Loss by Landscape")+
+  scale_fill_discrete(name = "Landscape")
+
+#stacked bar graph food loss ~ country
+ggplot(filter(hh_fieldcrop, ag5a_21 != "NA"), aes(country, fill=ordered(ag5a_21))) +
+  geom_bar(stat="count", position = "fill")+
+  theme(plot.title = element_text(hjust = 0.5, face="bold"), legend.title=element_text(face="bold"), axis.title=element_text(face="bold"))+
+  xlab("Country")+
+  ylab("Percentage of Total Loss")+
+  ggtitle("Cause of Post-Harvest Food Loss by Country")+
+  scale_fill_discrete(name="Cause of Food Loss")
+
+```
+

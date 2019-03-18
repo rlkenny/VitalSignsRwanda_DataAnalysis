@@ -1,0 +1,651 @@
+---
+title: "Vital Signs Rwanda Yield Gap Analysis"
+author: "Rachel Kenny"
+date: "1/13/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+####Commonly Used Indicators
+  # *Intercrop - ag4a_04 (1 yes/2 no)
+  # *Erosion control - ag3a_14 (1 yes/2 no) ag3a_15_1, ag3a_15_2, (type: primary, secondary)
+  # *Area harvested - ag4a_08
+  # *Inorganic fertilizer  - ag3a_45 (1 yes/2 no), ag3a_47 (kg)
+  # *Organic fertilizer  - ag3a_39 (1 yes/2 no), ag3a_40 (kg)
+  # *Pesticide/herbicide - ag3a_58 (1 yes/2 no), ag3a_59 {1: 'Pesticide', 2: 'Herbicide', 3:  'Fungicide'}, ag3a_60_1 (kg), pesticide_kg, herbicide_kg, fungicide_kg
+
+```{r}
+
+#load libraries
+library(tidyverse)
+library(dplyr)
+library(readr)
+library(ggplot2)
+library(broom)
+library(purrr)
+library(dotwhisker)
+library(estimatr)
+library(readr)
+library(RColorBrewer)
+library(wesanderson)
+
+#load data
+fieldcrop <- read_csv(url("https://vitalsigns-website-downloads.s3.amazonaws.com/tables/household_field_season_fieldcrop.csv"))
+hh_fieldcrop <- read_csv(url("https://vitalsigns-website-downloads.s3.amazonaws.com/tables/household_fieldcrop.csv"))
+field_season <- read_csv(url("https://vitalsigns-website-downloads.s3.amazonaws.com/tables/household_field_season.csv"))
+hh_indiv <- read_csv(url("https://vitalsigns-website-downloads.s3.amazonaws.com/tables/household_individual.csv"))
+
+#View(household_field_season_fieldcrop)
+```
+
+
+```{r}
+#Filter fieldcrop, treat factors as factors and numeric as numeric
+fieldcrop <- dplyr::filter(fieldcrop, country == 'RWA', ag4a_15 != "na")
+fieldcrop$ag4a_08 <- as.numeric(fieldcrop$ag4a_08)
+fieldcrop$ag4a_15 <- as.numeric(fieldcrop$ag4a_15)
+fieldcrop$ag4a_15_unit <- as.factor(fieldcrop$ag4a_15_unit)
+fieldcrop$crop_name <- as.factor(fieldcrop$crop_name)
+fieldcrop$ag4a_15_unit[which(fieldcrop$ag4a_15_unit=="Liter")] <- "Kg" #because this is a misentry
+fieldcrop <- filter(fieldcrop, ag4a_15_unit == "Kg")
+
+#fix crop name mismatches
+fieldcrop$crop_name[which(fieldcrop$crop_name=="Irish potatoes")] <- "Irish Potatoes"
+fieldcrop$crop_name[which(fieldcrop$crop_name=="Blood fruit")] <- "Blood Fruit"  
+
+#Filter field_season, treat factors as factors and numeric as numeric
+field_season <- filter(field_season, country == 'RWA',  ag3a_03 == 'Cultivated' )
+field_season$ag3a_39 <- as.factor(field_season$ag3a_39)
+field_season$ag3a_39a <- as.factor(field_season$ag3a_39a)
+field_season$ag3a_39a_other <- as.factor(field_season$ag3a_39a_other)
+field_season$ag3a_40 <- as.numeric(field_season$ag3a_40)
+field_season$ag3a_45 <- as.factor(field_season$ag3a_45)
+field_season$ag3a_47 <- as.factor(field_season$ag3a_47)
+
+#fix crop name mismatch
+field_season$ag3a_07_1[which(field_season$ag3a_07_1=="Irish potatoes")] <- "Irish Potatoes"
+field_season$ag3a_07_1[which(field_season$ag3a_07_1=="Blood fruit")] <- "Blood Fruit"
+
+#fset landscape # as factor in household survey data
+hh_fieldcrop$landscape_no <- as.factor(hh_fieldcrop$landscape_no)
+
+#Join fieldcrop and field_season dataframes
+joined_df <- inner_join(field_season, fieldcrop, by =c("id"= "parent_id", 'round', "landscape_no", "country", "field_no", "hh_refno", "season"))
+
+#Add columns for yield
+joined_df <- mutate(joined_df, kg_peracre = ag4a_15/ag4a_08)
+joined_df <- mutate(joined_df, kg_perha = kg_peracre*(1/.404686))
+
+#per acre planted 
+joined_df$ag4a_02[which(joined_df$ag4a_02=="1/4")] <- .25
+joined_df$ag4a_02[which(joined_df$ag4a_02=="1/2")] <- .5
+joined_df$ag4a_02[which(joined_df$ag4a_02=="3/4")] <- .75
+joined_df$ag4a_02[which(joined_df$ag4a_02=="Almost All")] <- 1
+joined_df$ag3a_40 <- as.numeric(joined_df$ag3a_40)
+joined_df$ag3a_47 <- as.numeric(joined_df$ag3a_47)
+joined_df$ag4a_02 <- as.numeric(joined_df$ag4a_02)
+
+joined_df <- mutate(joined_df, kg_peracre_planted = case_when(ag4a_01 == TRUE ~ kg_peracre, ag4a_01 == FALSE ~ ag4a_15/(ag4a_08*ag4a_02))) %>% 
+  mutate(kg_perha_planted = kg_peracre_planted *(1/.404686))
+
+#value per hectare planted 
+joined_df <- filter(joined_df, kg_perha_planted != Inf) %>% 
+  mutate(value_peracre = ag4a_16/ag4a_08) %>% 
+  mutate(value_perha = value_peracre*(1/.404686)) %>% 
+  mutate(value_peracre_planted = case_when(ag4a_01 == TRUE ~ value_peracre, ag4a_01 == FALSE ~ ag4a_16/ag4a_08*ag4a_02)) %>% 
+  mutate(value_perha_planted = value_peracre_planted *(1/.404686))
+
+
+#Add column for pesticide kg per hectare planted
+joined_df <-mutate(joined_df, pesticide_use_kg = ifelse(ag3a_60_2 == "Millilitre", ag3a_60_1*0.001, ag3a_60_1)) %>% 
+  mutate(pesticide_use_kg = case_when(ag3a_58 == TRUE ~ pesticide_use_kg, ag3a_58 == FALSE ~ 0)) %>% 
+  mutate(pest_peracre = pesticide_use_kg/ag4a_08) %>% 
+  mutate(pest_perha = pest_peracre*(1/.404686)) %>% 
+  mutate(pest_peracre_planted = case_when(ag4a_01 == TRUE ~ pest_peracre, ag4a_01 == FALSE ~ pest_peracre/ag4a_02)) %>% 
+  mutate(pest_perha_planted = pest_peracre_planted *(1/.404686))
+
+#Add column for inorg fert kg per hectare planted
+joined_df <- mutate(joined_df, inorg_peracre = ag3a_47/ag4a_08) %>% 
+  mutate(inorg_perha = inorg_peracre*(1/.404686)) %>%  
+  mutate(inorg_perha_planted = case_when(ag4a_01 == TRUE ~ inorg_perha, ag4a_01 == FALSE ~ inorg_perha/ag4a_02)) %>% 
+  mutate(inorg_perha_planted = case_when(ag3a_45 ==TRUE ~ inorg_perha_planted, ag3a_45 == FALSE ~ 0 ))
+
+#Add column for org fert kg per hectare planted
+joined_df <- mutate(joined_df, org_peracre = ag3a_40/ag4a_08) %>% 
+  mutate(org_perha = org_peracre*(1/.404686)) %>%
+  mutate(org_perha_planted = case_when(ag4a_01 == TRUE ~ org_peracre, ag4a_01 == FALSE ~ org_perha/ag4a_02)) %>% 
+  mutate(org_perha_planted = case_when(ag3a_39 ==TRUE ~ org_perha_planted, ag3a_39 == FALSE ~ 0 ))
+
+#Summarize number of entries per crop
+joined_df %>%
+  group_by(crop_name) %>%
+  tally()
+
+#subset data n>30, reveals top 10 plots
+jdf_n30 <- filter(joined_df, crop_name == "Banana Beer" | crop_name == "Banana Food" | crop_name == "Beans" | crop_name == "Cassava" | crop_name == "Field Peas" | crop_name == "Groundnut" | crop_name == "Irish Potatoes" | crop_name == "Maize" | crop_name == "Paddy" | crop_name == "Pyrethrum" | crop_name == "Sorghum" | crop_name == "Soyabeans" | crop_name == "Sweet Potatoes" | crop_name == "Wheat")
+
+```
+
+
+```{r}
+
+cr <- unique(jdf_n30$crop_name)
+
+jdf_n30 <- jdf_n30[!is.na(jdf_n30$ag4a_04),] #Removes NA value for intercropping
+
+#create exclude variable
+jdf_n30$exclude_1 <- NA
+jdf_n30$exclude_2.5 <- NA
+jdf_n30$exclude_5 <- NA
+
+for(i in 1:length(cr)){
+jdf_n30$exclude_1[jdf_n30$crop_name==cr[i]] <- ifelse(jdf_n30$kg_perha_planted[jdf_n30$crop_name==cr[i]] > quantile(jdf_n30$kg_perha_planted[jdf_n30$crop_name==cr[i]], probs=0.99) | jdf_n30$kg_perha_planted[jdf_n30$crop_name==cr[i]] < quantile(jdf_n30$kg_perha_planted[jdf_n30$crop_name==cr[i]], probs=0.01), 1, 0)
+
+jdf_n30$exclude_2.5[jdf_n30$crop_name==cr[i]] <- ifelse(jdf_n30$kg_perha_planted[jdf_n30$crop_name==cr[i]] > quantile(jdf_n30$kg_perha_planted[jdf_n30$crop_name==cr[i]], probs=0.975) | jdf_n30$kg_perha_planted[jdf_n30$crop_name==cr[i]] < quantile(jdf_n30$kg_perha_planted[jdf_n30$crop_name==cr[i]], probs=0.025), 1, 0)
+    
+jdf_n30$exclude_5[jdf_n30$crop_name==cr[i]] <- ifelse(jdf_n30$kg_perha_planted[jdf_n30$crop_name==cr[i]] > quantile(jdf_n30$kg_perha_planted[jdf_n30$crop_name==cr[i]], probs=0.95) | jdf_n30$kg_perha_planted[jdf_n30$crop_name==cr[i]] < quantile(jdf_n30$kg_perha_planted[jdf_n30$crop_name==cr[i]], probs=0.05), 1, 0)
+}
+
+table(jdf_n30$exclude_1, useNA="always")
+table(jdf_n30$exclude_2.5, useNA="always")
+table(jdf_n30$exclude_5, useNA="always")
+
+jdf_n30_1 <- jdf_n30[jdf_n30$exclude_1==0,]
+jdf_n30_2.5 <- jdf_n30[jdf_n30$exclude_2.5==0,]
+jdf_n30_5 <- jdf_n30[jdf_n30$exclude_5==0,]
+
+#create yield gap variable 
+dta <- list(jdf_n30_1, jdf_n30_2.5, jdf_n30_5)
+for(i in 1:length(dta)){
+  for(j in 1:length(cr)){
+    dta[[i]]$yield_gap[dta[[i]]$crop_name==cr[j]] <- ifelse(dta[[i]]$kg_perha_planted[dta[[i]]$crop_name==cr[j]] > quantile(dta[[i]]$kg_perha_planted[dta[[i]]$crop_name==cr[j]], probs=0.75), 1, 0)
+  }
+}
+#table(dta[[1]]$yield_gap, useNA="always") #code to check number of entries
+```
+
+####T-tests
+Yield ~ Intercrop
+```{r}
+#yield_intercrop_tt-tests
+yield_intercrop_ttests_1 <- list()
+yield_intercrop_ttests_2.5 <- list()
+yield_intercrop_ttests_5 <- list()
+
+table(jdf_n30$crop_name, jdf_n30$ag4a_04, useNA="always")
+
+
+keep <- c("Banana Beer", "Beans", "Cassava", "Irish Potatoes", "Maize", "Sorghum", "Soyabeans",  "Banana Food", "Field Peas", "Groundnut", "Sweet Potatoes")
+
+#t-test of yield ~ intercrop (yes/no) dta is list, take first object, only retain rows where crop name = i
+for(i in 1:length(keep)){
+  df <- dta[[1]][dta[[1]]$crop_name==keep[i],]
+  stat1 <- t.test(kg_perha_planted ~ ag4a_04,
+               data=df,
+               alternative="greater")
+  yield_intercrop_ttests_1[[i]] <- stat1
+  
+  df1 <- dta[[2]][dta[[2]]$crop_name==keep[i],]
+    stat2.5 <- t.test(kg_perha_planted ~ ag4a_04,
+               data=df1,
+               alternative="greater")
+  yield_intercrop_ttests_2.5[[i]] <- stat2.5
+
+    df2 <- dta[[3]][dta[[3]]$crop_name==keep[i],]
+    stat5 <- t.test(kg_perha_planted ~ ag4a_04,
+               data=df2,
+               alternative="greater")
+  yield_intercrop_ttests_5[[i]] <- stat5
+}
+
+#yield_intercrop_tt-tests
+yield_intercrop_ttests_1 
+yield_intercrop_ttests_2.5 
+yield_intercrop_ttests_5 
+
+#yield_intercrop_table <- map_df(yield_intercrop_ttests_5, tidy)
+#names(yield_intercrop_table) <- c("estimate", "Mean 1", "Mean 2", "t-statistic", "p-value", "df")
+#yield_intercrop_table[c("Mean 1", "Mean 2", "t-statistic", "p-value")]
+
+```
+
+####T-tests Yield
+Yield ~ Pesticide
+```{r}
+#yield_pesticide_tt-tests
+yield_pesticide_ttests_1 <- list()
+yield_pesticide_ttests_2.5 <- list()
+yield_pesticide_ttests_5 <- list()
+
+table(jdf_n30$crop_name, jdf_n30$ag3a_58, useNA="always")
+
+
+keep <- c("Beans", "Irish Potatoes", "Maize", "Paddy")
+
+#t-test of yield ~ pesticide (yes/no) dta is list, take first object, only retain rows where crop name = i
+for(i in 1:length(keep)){
+  df <- dta[[1]][dta[[1]]$crop_name==keep[i],]
+  stat1 <- t.test(kg_perha_planted ~ ag3a_58,
+               data=df,
+               alternative="greater")
+  yield_pesticide_ttests_1[[i]] <- stat1
+  
+  df1 <- dta[[2]][dta[[2]]$crop_name==keep[i],]
+    stat2.5 <- t.test(kg_perha_planted ~ ag3a_58,
+               data=df1,
+               alternative="greater")
+  yield_pesticide_ttests_2.5[[i]] <- stat2.5
+
+    df2 <- dta[[3]][dta[[3]]$crop_name==keep[i],]
+    stat5 <- t.test(kg_perha_planted ~ ag3a_58,
+               data=df2,
+               alternative="greater")
+  yield_pesticide_ttests_5[[i]] <- stat5
+}
+
+#yield_pesticide_tt-tests
+yield_pesticide_ttests_1 
+yield_pesticide_ttests_2.5 
+yield_pesticide_ttests_5 
+
+#yield_pesticide_table <- map_df(yield_pesticide_ttests_5, tidy)
+#names(yield_pesticide_table) <- c("estimate", "Mean 1", "Mean 2", "t-statistic", "p-value", "df")
+#yield_pesticide_table[c("Mean 1", "Mean 2", "t-statistic", "p-value")]
+
+
+```
+
+
+Yield ~ Organic Fertilizer
+```{r}
+#yield_org_tt-tests
+yield_org_ttests_1 <- list()
+yield_org_ttests_2.5 <- list()
+yield_org_ttests_5 <- list()
+
+table(jdf_n30$crop_name, jdf_n30$ag3a_39, useNA="always")
+
+
+keep <- c("Banana Beer", "Beans", "Cassava", "Irish Potatoes", "Maize", "Sorghum", "Soyabeans", "Sweet Potatoes")
+
+#t-test of yield ~ organic fertilizer (yes/no) 
+for(i in 1:length(keep)){
+  df <- dta[[1]][dta[[1]]$crop_name==keep[i],]
+  stat1 <- t.test(kg_perha_planted ~ ag3a_39,
+               data=df,
+               alternative="greater")
+  yield_org_ttests_1[[i]] <- stat1
+  
+  df1 <- dta[[2]][dta[[2]]$crop_name==keep[i],]
+    stat2.5 <- t.test(kg_perha_planted ~ ag3a_39,
+               data=df1,
+               alternative="greater")
+  yield_org_ttests_2.5[[i]] <- stat2.5
+
+    df2 <- dta[[3]][dta[[3]]$crop_name==keep[i],]
+    stat5 <- t.test(kg_perha_planted ~ ag3a_39,
+               data=df2,
+               alternative="greater")
+  yield_org_ttests_5[[i]] <- stat5
+}
+
+#yield_org_tt-tests
+yield_org_ttests_1 
+yield_org_ttests_2.5 
+yield_org_ttests_5 
+
+#yield_org_table <- map_df(yield_org_ttests_2.5, tidy)
+#names(yield_org_table) <- c("estimate", "Mean 1", "Mean 2", "t-statistic", "p-value", "df")
+#yield_org_table[c("Mean 1", "Mean 2", "t-statistic", "p-value")]
+
+
+```
+
+Yield ~ Inorganic Fertilizer
+```{r}
+#yield_inorg_tt-tests
+yield_inorg_ttests_1 <- list()
+yield_inorg_ttests_2.5 <- list()
+yield_inorg_ttests_5 <- list()
+
+table(jdf_n30$crop_name, jdf_n30$ag3a_45, useNA="always")
+table(joined_df$crop_name, joined_df$ag3a_45, useNA="always")
+
+keep <- c("Beans", "Irish Potatoes", "Maize", "Wheat")
+
+#t-test of yield ~ inorg (yes/no) dta is list, take first object, only retain rows where crop name = i
+for(i in 1:length(keep)){
+  df <- dta[[1]][dta[[1]]$crop_name==keep[i],]
+  stat1 <- t.test(kg_perha_planted ~ ag3a_45,
+               data=df,
+               alternative="greater")
+  yield_inorg_ttests_1[[i]] <- stat1
+  
+  df1 <- dta[[2]][dta[[2]]$crop_name==keep[i],]
+    stat2.5 <- t.test(kg_perha_planted ~ ag3a_45,
+               data=df1,
+               alternative="greater")
+  yield_inorg_ttests_2.5[[i]] <- stat2.5
+
+    df2 <- dta[[3]][dta[[3]]$crop_name==keep[i],]
+    stat5 <- t.test(kg_perha_planted ~ ag3a_45,
+               data=df2,
+               alternative="greater")
+  yield_inorg_ttests_5[[i]] <- stat5
+}
+
+#yield_inorg_tt-tests
+yield_inorg_ttests_1 
+yield_inorg_ttests_2.5 
+yield_inorg_ttests_5 
+
+# yield_inorg_table <- map_df(yield_inorg_ttests_2.5, tidy)
+# names(yield_inorg_table) <- c("estimate", "Mean 1", "Mean 2", "t-statistic", "p-value", "df")
+# yield_inorg_table[c("Mean 1", "Mean 2", "t-statistic", "p-value")]
+
+
+```
+
+
+
+####YIELD AS A FUNCTION OF YIELD GAP
+```{r}
+
+#yg_yield_tt-tests
+yg_yield_ttests_1 <- list()
+yg_yield_ttests_2.5 <- list()
+yg_yield_ttests_5 <- list()
+
+#table(jdf_n30$crop_name, jdf_n30$ag3a_58, useNA="always")
+keep <- c("Banana Beer", "Banana Food", "Beans", "Cassava", "Field Peas", "Groundnut", "Irish Potatoes", "Maize", "Paddy", "Pyrethrum", "Sorghum", "Soyabeans", "Sweet Potatoes", "Wheat")
+
+#t-test of yield ~ yield gap
+for(i in 1:length(keep)){
+  df <- dta[[1]][dta[[1]]$crop_name==keep[i],]
+  stat1 <- t.test(kg_perha_planted ~ yield_gap,
+               data=df,
+               alternative="less")
+  yg_yield_ttests_1[[i]] <- stat1
+  
+  df1 <- dta[[2]][dta[[2]]$crop_name==keep[i],]
+  stat2.5 <- t.test(kg_perha_planted ~ yield_gap,
+               data=df1,
+               alternative="less")
+  yg_yield_ttests_2.5[[i]] <- stat2.5
+
+  df2 <- dta[[3]][dta[[3]]$crop_name==keep[i],]
+  stat5 <- t.test(kg_perha_planted ~ yield_gap,
+               data=df2,
+               alternative="less")
+  yg_yield_ttests_5[[i]] <- stat5
+}
+
+#yg_yield_tt-tests
+yg_yield_ttests_1 
+yg_yield_ttests_2.5 
+yg_yield_ttests_5 
+
+#Table
+yg_yield_table <- map_df(yg_yield_ttests_5, tidy)
+names(yg_yield_table) <- c("estimate", "Mean_1", "Mean_2", "t-statistic", "p-value", "df", "CI", "Inf?", "test", "alternative")
+
+# dataframe including differences
+yg_yield_table2 <- as.data.frame(yg_yield_table)
+yg_yield_table2 <- select(yg_yield_table2, "Mean_1", "Mean_2", "t-statistic", "p-value")
+yg_yield_table2 <- mutate(yg_yield_table2, difference = ((Mean_2 - Mean_1) * (100/Mean_1)))
+rownames(yg_yield_table2) <-  c("Banana Beer", "Banana Food", "Beans", "Cassava", "Field Peas", "Groundnut", "Irish Potatoes", "Maize", "Paddy", "Pyrethrum", "Sorghum", "Soyabeans", "Sweet Potatoes", "Wheat")
+View(yg_yield_table2)
+
+#Summarize number of entries per crop
+
+```
+
+
+
+####PESTICIDES AS A FUNCTION OF YIELD GAP
+```{r}
+
+#yg_pest_tt-tests
+yg_pest_ttests_1 <- list()
+yg_pest_ttests_2.5 <- list()
+yg_pest_ttests_5 <- list()
+
+table(jdf_n30$crop_name, jdf_n30$ag3a_58, useNA="always")
+keep <- c("Beans", "Irish Potatoes", "Maize", "Paddy")
+
+#t-test of pesticide ~ yield gap
+for(i in 1:length(keep)){
+  df <- dta[[1]][dta[[1]]$crop_name==keep[i],]
+  stat1 <- t.test(pest_perha_planted ~ yield_gap,
+               data=df,
+               alternative="less")
+  yg_pest_ttests_1[[i]] <- stat1
+  
+  df1 <- dta[[2]][dta[[2]]$crop_name==keep[i],]
+  stat2.5 <- t.test(pest_perha_planted ~ yield_gap,
+               data=df1,
+               alternative="less")
+  yg_pest_ttests_2.5[[i]] <- stat2.5
+
+  df2 <- dta[[3]][dta[[3]]$crop_name==keep[i],]
+  stat5 <- t.test(pest_perha_planted ~ yield_gap,
+               data=df2,
+               alternative="less")
+  yg_pest_ttests_5[[i]] <- stat5
+}
+
+#yg_pest_tt-tests
+yg_pest_ttests_1 
+yg_pest_ttests_2.5 
+yg_pest_ttests_5 
+
+# Table if top/bottom 5% eliminated
+yg_pest_table <- map_df(yg_pest_ttests_2.5, tidy)
+# names(yg_pest_table) <- c("estimate", "Mean_1", "Mean_2", "t-statistic", "p-value", "df", "CI", "Inf?", "test", "alternative")
+# 
+# dataframe including differences
+# yg_pest_table2 <- as.data.frame(yg_pest_table)
+# yg_pest_table2 <- select(yg_pest_table2, "Mean_1", "Mean_2", "t-statistic", "p-value")
+# yg_pest_table2 <- mutate(yg_pest_table2, difference = ((Mean_2 - Mean_1) * (100/Mean_1)))
+# rownames(yg_pest_table2) <- c("Beans", "Irish Potatoes", "Maize", "Paddy")
+# View(yg_pest_table2)
+
+```
+
+
+####INORGANIC FERTILIZER AS A FUNCTION OF YIELD GAP
+```{r}
+
+#yg_pest_tt-tests
+yg_inorg_ttests_1 <- list()
+yg_inorg_ttests_2.5 <- list()
+yg_inorg_ttests_5 <- list()
+
+table(jdf_n30$crop_name, jdf_n30$ag3a_45, useNA="always")
+keep <- c("Beans", "Irish Potatoes", "Maize", "Wheat")
+
+#t-test of inorganic fertilizer ~ yield gap
+for(i in 1:length(keep)){
+  df <- dta[[1]][dta[[1]]$crop_name==keep[i],]
+  stat1 <- t.test(inorg_perha_planted ~ yield_gap,
+               data=df,
+               alternative="less")
+  yg_inorg_ttests_1[[i]] <- stat1
+  
+  df1 <- dta[[2]][dta[[2]]$crop_name==keep[i],]
+  stat2.5 <- t.test(inorg_perha_planted ~ yield_gap,
+               data=df1,
+               alternative="less")
+  yg_inorg_ttests_2.5[[i]] <- stat2.5
+
+  df2 <- dta[[3]][dta[[3]]$crop_name==keep[i],]
+  stat5 <- t.test(inorg_perha_planted ~ yield_gap,
+               data=df2,
+               alternative="less")
+  yg_inorg_ttests_5[[i]] <- stat5
+}
+
+#yg_inorg_tt-tests
+yg_inorg_ttests_1 
+yg_inorg_ttests_2.5 
+yg_inorg_ttests_5 
+
+# #Table
+# yg_inorg_table <- map_df(yg_inorg_ttests_5, tidy)
+# names(yg_inorg_table) <- c("estimate", "Mean_1", "Mean_2", "t-statistic", "p-value", "df", "CI", "Inf?", "test", "alternative")
+# 
+# yg_inorg_table2 <- as.data.frame(yg_inorg_table)
+# yg_inorg_table2 <- select(yg_inorg_table2, "Mean_1", "Mean_2", "t-statistic", "p-value")
+# yg_inorg_table2 <- mutate(yg_inorg_table2, difference = ((Mean_2 - Mean_1) * (100/Mean_1)))
+# rownames(yg_inorg_table2) <-  c("Beans", "Irish Potatoes", "Maize", "Wheat")
+# View(yg_inorg_table2)
+
+```
+
+
+####ORGANIC FERTILIZER AS A FUNCTION OF YIELD GAP
+```{r}
+
+#yg_pest_tt-tests
+yg_org_ttests_1 <- list()
+yg_org_ttests_2.5 <- list()
+yg_org_ttests_5 <- list()
+
+table(jdf_n30$crop_name, jdf_n30$ag3a_39, useNA="always")
+keep <- c("Banana Beer", "Beans", "Cassava", "Irish Potatoes", "Maize", "Sorghum", "Soyabeans", "Sweet Potatoes")
+
+#t-test of organic fertilizer ~ yield gap
+for(i in 1:length(keep)){
+  df <- dta[[1]][dta[[1]]$crop_name==keep[i],]
+  stat1 <- t.test(org_perha_planted ~ yield_gap,
+               data=df,
+               alternative="less")
+  yg_org_ttests_1[[i]] <- stat1
+  
+  df1 <- dta[[2]][dta[[2]]$crop_name==keep[i],]
+  stat2.5 <- t.test(org_perha_planted ~ yield_gap,
+               data=df1,
+               alternative="less")
+  yg_org_ttests_2.5[[i]] <- stat2.5
+
+  df2 <- dta[[3]][dta[[3]]$crop_name==keep[i],]
+  stat5 <- t.test(org_perha_planted ~ yield_gap,
+               data=df2,
+               alternative="less")
+  yg_org_ttests_5[[i]] <- stat5
+}
+
+#yg_org_tt-tests
+yg_org_ttests_1 
+yg_org_ttests_2.5 
+yg_org_ttests_5 
+
+
+# #Table
+# yg_org_table <- map_df(yg_org_ttests_5, tidy)
+# names(yg_org_table) <- c("estimate", "Mean_1", "Mean_2", "t-statistic", "p-value", "df", "CI", "Inf?", "test", "alternative")
+# 
+# yg_org_table2 <- as.data.frame(yg_org_table)
+# yg_org_table2 <- select(yg_org_table2, "Mean_1", "Mean_2", "t-statistic", "p-value")
+# yg_org_table2 <- mutate(yg_org_table2, difference = ((Mean_2 - Mean_1) * (100/Mean_1)))
+# rownames(yg_org_table2) <- c("Banana Beer", "Beans", "Cassava", "Irish Potatoes", "Maize", "Sorghum", "Soyabeans", "Sweet Potatoes")
+# View(yg_org_table2)
+
+
+```
+
+
+
+####HISTOGRAMS AND DENSITY PLOTS OF YIELD (KG/HA)
+```{r for() loop historgrams}
+
+cr <- as.character(unique(jdf_n30_2.5$crop_name))
+hist_crop_yield_2.5 <- list()
+hist_crop_yield_5 <- list()
+
+#for() loop histograms of crop yield
+for(i in 1:length(cr)){
+  plot <- ggplot(jdf_n30_2.5[jdf_n30_2.5$crop_name==cr[i],], aes(kg_perha_planted)) + 
+    geom_histogram(bins = 20, color="darkblue", fill="lightblue") +
+    xlab("Yield (kg/hectare planted)")+
+  theme(plot.title = element_text(hjust = 0.5, face="bold"), legend.title=element_text(face="bold"), axis.title=element_text(face="bold"))+
+    ggtitle(paste("Histogram of", cr[i], "Yield", sep=" "))
+  hist_crop_yield_2.5[[i]] <- plot 
+}
+hist_crop_yield_2.5
+
+for(i in 1:length(cr)){
+  plot <- ggplot(jdf_n30_5[jdf_n30_5$crop_name==cr[i],], aes(kg_perha_planted)) + 
+    geom_histogram(bins = 20, color="darkblue", fill="lightblue") +
+    xlab("Yield (kg/hectare planted)")+
+  theme(plot.title = element_text(hjust = 0.5, face="bold"), legend.title=element_text(face="bold"), axis.title=element_text(face="bold"))+
+    ggtitle(paste("Histogram of", cr[i], "Yield", sep=" "))
+  hist_crop_yield_5[[i]] <- plot 
+}
+#hist_crop_yield_5
+
+# --------------------------------------------
+
+#for() loop density plot of crop yield
+
+cr <- as.character(unique(jdf_n30_2.5$crop_name))
+dens_crop_yield_2.5 <- list()
+dens_crop_yield_5 <- list()
+
+for(i in 1:length(cr)){
+  plot <- ggplot(jdf_n30_2.5[jdf_n30_2.5$crop_name==cr[i],], aes(kg_perha_planted)) + 
+    geom_density(kernel = "gaussian", color="darkblue", fill="lightblue") +
+    xlab("Yield (kg/hectare planted)")+
+  theme(plot.title = element_text(hjust = 0.5, face="bold"), legend.title=element_text(face="bold"), axis.title=element_text(face="bold"))+
+    ggtitle(paste("Density Plot of", cr[i], "Yield", sep=" "))+
+    scale_fill_manual()
+  dens_crop_yield_2.5[[i]] <- plot 
+}
+dens_crop_yield_2.5
+
+for(i in 1:length(cr)){
+  plot <- ggplot(jdf_n30_5[jdf_n30_5$crop_name==cr[i],], aes(kg_perha_planted)) + 
+    geom_density(kernel = "gaussian", color="darkblue", fill="lightblue") +
+    xlab("Yield (kg/hectare planted)")+
+  theme(plot.title = element_text(hjust = 0.5, face="bold"), legend.title=element_text(face="bold"), axis.title=element_text(face="bold"))+
+    ggtitle(paste("Density Plot of", cr[i], "Yield", sep=" "))+
+    scale_fill_manual()
+  dens_crop_yield_5[[i]] <- plot 
+}
+#dens_crop_yield_5
+
+
+
+
+```
+
+####Commonly Used Indicators
+*Intercrop - ag4a_04 (1 yes/2 no)
+*Erosion control - ag3a_14 (1 yes/2 no) ag3a_15_1, ag3a_15_2, (type, primary, secondary)
+*Area harvested - ag4a_08
+*Inorganic fertilizer  - ag3a_45 (1 yes/2 no), ag3a_47 (kg)
+*Organic fertilizer  - ag3a_39 (1 yes/2 no), ag3a_40 (kg)
+*Pesticide/herbicide - ag3a_58 (1 yes/2 no), ag3a_59 {1: 'Pesticide', 2: 'Herbicide', 3: 'Fungicide'}, ag3a_60_1 (kg), pesticide_kg, herbicide_kg, fungicide_kg
+
+
+####Yield Gap ~ Erosion Control
+```{r}
+
+#Yield Gap ~ Erosion Control
+ggplot(data = filter(jdf_n30_2.5, ag3a_14 != "NA"), aes(yield_gap, fill=ordered(ag3a_14, levels=c("Yes", "No")))) +
+  geom_bar(stat="count", position = "fill")+
+  theme(plot.title = element_text(hjust = 0.5, face="bold"), legend.title=element_text(face="bold"), axis.title=element_text(face="bold"))+
+  xlab("Lower/ Higher Yield")+
+  ylab("Erosion Control")+
+  ggtitle("Erosion Control as a Function of Yield Gap")+
+  scale_fill_discrete(name="Erosion Control", labels =c("Yes", "No"))
+
+```
+
+
+```
+
