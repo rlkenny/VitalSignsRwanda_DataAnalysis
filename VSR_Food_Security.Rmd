@@ -103,7 +103,6 @@ joined_df <- filter(joined_df, kg_perha_planted != Inf) %>%
   mutate(value_peracre_planted = case_when(ag4a_01 == TRUE ~ value_peracre, ag4a_01 == FALSE ~ ag4a_16/ag4a_08*ag4a_02)) %>% 
   mutate(value_perha_planted = value_peracre_planted *(1/.404686))
 
-
 #Add column for pesticide kg per hectare planted
 joined_df <-mutate(joined_df, pesticide_use_kg = ifelse(ag3a_60_2 == "Millilitre", ag3a_60_1*0.001, ag3a_60_1)) %>% 
   mutate(pesticide_use_kg = case_when(ag3a_58 == TRUE ~ pesticide_use_kg, ag3a_58 == FALSE ~ 0)) %>% 
@@ -126,6 +125,27 @@ joined_df <- mutate(joined_df, org_peracre = ag3a_40/ag4a_08) %>%
 
 ```
 
+#### General
+**ag4a_01** Was crop planted in entire area of FIELD?
+**ag4a_02** Approximately, how much of the FIELD was planted with the crop?
+**ag4a_08** What was the area harvested? (ACRES)
+**ag4a_16** What is the estimated value of the harvested crop in local currency?
+
+#### Agricultural Inputs
+**ag3a_39** Did you use any ORGANIC FERTILIZER on this FIELD?
+**ag3a_40** What was the quantity of organic fertilizer used? KGS
+
+**ag3a_45** Did you use any inorganic fertilizer on this FIELD?
+**ag3a_47** What quantity of [FERTILIZER] did you use? (KGs)
+
+**ag3a_58** Did you use any pesticide/ herbicide on this FIELD?
+**ag3a_60_1** What quantity of this pesticide/herbicide did you use?
+
+
+#### Agricultural Practices
+**ag3a_14** Was there any erosion control/water harvesting facility on this FIELD?
+**ag4a_04** Was cultivation intercropped?
+**ag4a_23** What type of seed did you purchase ?
 
 
 ```{r}
@@ -196,20 +216,9 @@ out$Food_As_Percent_Total_Spending <- (out$Food.Spending/(out$Food.Spending + ou
 
 colnames(exchange_rates)[colnames(exchange_rates)=="End Date"] <- "date"
 
-```
-
-
-
-```{r}
 ymd(exchange_rates$date)
 
-```
-
-
-
-```{r}
 #match rate to interview date and country
-
 out$date <- ymd(ceiling_date(out$hh_interview_date, "week"))  #find the next Sunday
 
 out<-merge(out, exchange_rates, all.x=T, all.y=F)
@@ -228,8 +237,6 @@ out_ls <- out %>% group_by(country, landscape_no) %>%
             Mean_Food_Spending = mean(Food.Spending, na.rm=T),
             Food_As_Percent_Total_Spending = mean(Food_As_Percent_Total_Spending, na.rm=T))
 
-
-
 ```
 
 ```{r}
@@ -244,7 +251,6 @@ out_ls <- out %>% group_by(country, landscape_no) %>%
 
 #writeS3(out, 'FoodSecurity_HH.csv')
 #writeS3(out_ls, 'FoodSecurity_Landscape.csv')
-
 
 ```
 
@@ -285,31 +291,105 @@ out_ls_rwanda <- filter(out_ls, country == "RWA")
 
 ```
 
-#### Houshold food security data wrangling
+#### General
+**ag4a_01** Was crop planted in entire area of FIELD?
+**ag4a_02** Approximately, how much of the FIELD was planted with the crop?
+**ag4a_08** What was the area harvested? (ACRES)
+**ag4a_16** What is the estimated value of the harvested crop in local currency?
+
+#### Agricultural Inputs
+**ag3a_39** Did you use any ORGANIC FERTILIZER on this FIELD?
+**ag3a_40** What was the quantity of organic fertilizer used? KGS
+
+**ag3a_45** Did you use any inorganic fertilizer on this FIELD?
+**ag3a_47** What quantity of [FERTILIZER] did you use? (KGs)
+
+**ag3a_58** Did you use any pesticide/ herbicide on this FIELD?
+**ag3a_60_1** What quantity of this pesticide/herbicide did you use?
+
+
+#### Agricultural Practices
+**ag3a_14** Was there any erosion control/water harvesting facility on this FIELD?
+**ag4a_04** Was cultivation intercropped?
+**ag4a_23** What type of seed did you purchase ?
+
+
+#### Household food security data wrangling
 ```{r}
+
 hh_joined_df <-merge(joined_df, out_rwanda, all.x=T, all.y=F) %>% 
-  select(hfias, hh_refno, ag4a_04, field_no, landscape_no, crop_name) %>% 
+  select(hfias, hh_refno, ag3a_39, ag3a_45, ag3a_58, ag4a_04, ag3a_14, field_no, landscape_no, crop_name)
+
+# organic fertilizer
+hh_joined_org <- select(hh_joined_df, hfias, hh_refno, ag3a_39, field_no, landscape_no, crop_name) %>% 
+  mutate(org = case_when(ag3a_39 == TRUE ~ 1, FALSE ~ 0))
+hh_joined_org$org[is.na(hh_joined_org$org)] <- 0
+hh_joined_org$org <- as.numeric(hh_joined_org$org)
+hh_joined_org_ag  <- aggregate(org ~ hh_refno + hfias + landscape_no, FUN =  sum, data = hh_joined_org)
+hh_joined_org_ag <- aggregate(hfias ~ hh_refno + org +landscape_no, FUN = mean, data= hh_joined_org_ag) %>% 
+  mutate(sometimes_org = case_when(org > 0 ~ TRUE, org == 0 ~ FALSE))
+
+# inorganic fertilizer
+hh_joined_inorg <- select(hh_joined_df, hfias, hh_refno, ag3a_45, field_no, landscape_no, crop_name) %>% 
+  mutate(inorg = case_when(ag3a_45 == TRUE ~ 1, FALSE ~ 0))
+hh_joined_inorg$inorg[is.na(hh_joined_inorg$inorg)] <- 0
+hh_joined_inorg$inorg <- as.numeric(hh_joined_inorg$inorg)
+hh_joined_inorg_ag  <- aggregate(inorg ~ hh_refno + hfias + landscape_no, FUN =  sum, data = hh_joined_inorg)
+hh_joined_inorg_ag <- aggregate(hfias ~ hh_refno + inorg +landscape_no, FUN = mean, data= hh_joined_inorg_ag) %>% 
+  mutate(sometimes_inorg = case_when(inorg > 0 ~ TRUE, inorg == 0 ~ FALSE))
+
+# pesticides fertilizer
+hh_joined_pest <- select(hh_joined_df, hfias, hh_refno, ag3a_58, field_no, landscape_no, crop_name) %>% 
+  mutate(pest = case_when(ag3a_58 == TRUE ~ 1, FALSE ~ 0))
+hh_joined_pest$pest[is.na(hh_joined_pest$pest)] <- 0
+hh_joined_pest$pest <- as.numeric(hh_joined_pest$pest)
+hh_joined_pest_ag  <- aggregate(pest ~ hh_refno + hfias + landscape_no, FUN =  sum, data = hh_joined_pest)
+hh_joined_pest_ag <- aggregate(hfias ~ hh_refno + pest +landscape_no, FUN = mean, data= hh_joined_pest_ag) %>% 
+  mutate(sometimes_pest = case_when(pest > 0 ~ TRUE, pest == 0 ~ FALSE))
+
+# intercrop
+hh_joined_ic <-select(hh_joined_df, hfias, hh_refno, ag4a_04, field_no, landscape_no, crop_name) %>% 
   mutate(ic = case_when(ag4a_04 == TRUE ~ 1, FALSE ~ 0))
-
-hh_joined_df$ic[is.na(hh_joined_df$ic)] <- 0
-hh_joined_df$ic <- as.numeric(hh_joined_df$ic)
-
-hh_joined_df_ag  <- aggregate(ic ~ hh_refno + hfias + landscape_no, FUN =  sum, data = hh_joined_df)
-hh_joined_df_ag <- aggregate(hfias ~ hh_refno + ic +landscape_no, FUN = mean, data= hh_joined_df_ag) %>% 
+hh_joined_ic$ic[is.na(hh_joined_ic$ic)] <- 0
+hh_joined_ic$ic <- as.numeric(hh_joined_ic$ic)
+hh_joined_ic_ag  <- aggregate(ic ~ hh_refno + hfias + landscape_no, FUN =  sum, data = hh_joined_ic)
+hh_joined_ic_ag <- aggregate(hfias ~ hh_refno + ic +landscape_no, FUN = mean, data= hh_joined_ic_ag) %>% 
   mutate(sometimes_ic = case_when(ic > 0 ~ TRUE, ic == 0 ~ FALSE))
 
-#View(hh_joined_df_ag)
+# erosion control
+hh_joined_ec <-select(hh_joined_df, hfias, hh_refno, ag3a_14, field_no, landscape_no, crop_name) %>% 
+  mutate(ec = case_when(ag3a_14 == TRUE ~ 1, FALSE ~ 0))
+hh_joined_ec$ec[is.na(hh_joined_ec$ec)] <- 0
+hh_joined_ec$ec <- as.numeric(hh_joined_ec$ec)
+hh_joined_ec_ag  <- aggregate(ec ~ hh_refno + hfias + landscape_no, FUN =  sum, data = hh_joined_ec)
+hh_joined_ec_ag <- aggregate(hfias ~ hh_refno + ec +landscape_no, FUN = mean, data= hh_joined_ec_ag) %>% 
+  mutate(sometimes_ec = case_when(ec > 0 ~ TRUE, ec == 0 ~ FALSE))
 
 ```
 
 
 
-
 ```{r}
-#controlling for landscape, households that intercrop are more food secure (p=.036)
 
-gulp <- lm(hh_joined_df_ag$hfias ~ hh_joined_df_ag$sometimes_ic + hh_joined_df_ag$landscape_no)
-summary(gulp)
+hfias_org_lm <- lm(hh_joined_org_ag$hfias ~ hh_joined_org_ag$sometimes_org + hh_joined_org_ag$landscape_no)
+summary(hfias_org_lm)
+# hfias 2.5 points lower, p = .092
+
+hfias_inorg_lm <- lm(hh_joined_inorg_ag$hfias ~ hh_joined_inorg_ag$sometimes_inorg + hh_joined_inorg_ag$landscape_no)
+summary(hfias_inorg_lm)
+# hfias 4.3 points lower, p <.001*
+
+hfias_pest_lm <- lm(hh_joined_pest_ag$hfias ~ hh_joined_pest_ag$sometimes_pest + hh_joined_pest_ag$landscape_no)
+summary(hfias_pest_lm)
+# hfias 3.1 points lower, p = .023*
+
+hfias_inter_lm <- lm(hh_joined_ic_ag$hfias ~ hh_joined_ic_ag$sometimes_ic + hh_joined_ic_ag$landscape_no)
+summary(hfias_inter_lm)
+# hfias 2.5 points lower, p = .036*
+
+hfias_ec_lm <- lm(hh_joined_ec_ag$hfias ~ hh_joined_ec_ag$sometimes_ec + hh_joined_ec_ag$landscape_no)
+summary(hfias_ec_lm)
+# hfias 2.4 points lower, p = .122
 
 ```
 
@@ -347,15 +427,20 @@ hist(dont$hfias)
 ```{r}
 
 #old overlapping density plot that we decided to replace
-ggplot(hh_joined_df_ag)+
+ggplot(hh_joined_ic_ag)+
   geom_density(aes(x=hfias, fill =sometimes_ic, alpha = .4))
 
 #Create food security levels for dfs with and without other variables
-fs_df_ag <- mutate(hh_joined_df_ag, Level = ifelse(hh_joined_df_ag$hfias == 0 | hh_joined_df_ag$hfias == 1, 4, ifelse(hh_joined_df_ag$hfias > 1 & hh_joined_df_ag$hfias <= 18, 3, ifelse(hh_joined_df_ag$hfias > 18 & hh_joined_df_ag$hfias <= 36, 2, 1)))) 
-
-
 fs_df <- mutate(hh_joined_df, Level = ifelse(hh_joined_df$hfias == 0 | hh_joined_df$hfias == 1, 4, ifelse(hh_joined_df$hfias > 1 & hh_joined_df$hfias <= 18, 3, ifelse(hh_joined_df$hfias > 18 & hh_joined_df$hfias <= 36, 2, 1)))) %>% 
   na.omit(fs_df)
+
+fs_ic_ag <- mutate(hh_joined_ic_ag, Level = ifelse(hh_joined_ic_ag$hfias == 0 | hh_joined_ic_ag$hfias == 1, 4, ifelse(hh_joined_ic_ag$hfias > 1 & hh_joined_ic_ag$hfias <= 18, 3, ifelse(hh_joined_ic_ag$hfias > 18 & hh_joined_ic_ag$hfias <= 36, 2, 1)))) 
+
+fs_inorg_ag <- mutate(hh_joined_inorg_ag, Level = ifelse(hh_joined_inorg_ag$hfias == 0 | hh_joined_inorg_ag$hfias == 1, 4, ifelse(hh_joined_inorg_ag$hfias > 1 & hh_joined_inorg_ag$hfias <= 18, 3, ifelse(hh_joined_inorg_ag$hfias > 18 & hh_joined_inorg_ag$hfias <= 36, 2, 1)))) 
+
+fs_pest_ag <- mutate(hh_joined_pest_ag, Level = ifelse(hh_joined_pest_ag$hfias == 0 | hh_joined_pest_ag$hfias == 1, 4, ifelse(hh_joined_pest_ag$hfias > 1 & hh_joined_pest_ag$hfias <= 18, 3, ifelse(hh_joined_pest_ag$hfias > 18 & hh_joined_pest_ag$hfias <= 36, 2, 1)))) 
+
+
 ```
 
 ```{r}
@@ -435,39 +520,62 @@ theme_VSR <- function () {
 
 ####Food security ~ Intercropping
 ```{r}
-fs_inter_bar <- ggplot(fs_df_ag, aes(sometimes_ic, fill=ordered(Level)))+
+#View(fs_df)
+
+fs_inter_bar <- ggplot(fs_ic_ag, aes(sometimes_ic, fill=ordered(Level)))+
   geom_bar(stat="count", position = "fill")+
   xlab("")+ylab("Proportion of sample")+
   ggtitle("Food Security & Intercropping")+
   scale_fill_manual(values = c("#eb4024", "#eb8932", "#e8af3c", "#449d8b"), name = "Food Security", labels = c("Severely food insecure", "Moderately food insecure", "Mildy food insecure", "Food secure"))+
   scale_x_discrete(expand = c(0.5, 0), labels = c("Monocropped","Intercropped")) +
   scale_y_continuous(expand = c(0, 0))+
-  theme_VSR()
+  theme_vsr()
 
 fs_inter_bar
 
-ggsave("fs_inter_bar.png", plot = fs_inter_bar, device = "png", path = "~/Documents/",
+ggsave("fs_inter_bar.png", plot = fs_inter_bar, device = "png", path = "~/Documents/Bren/GP/3Graphs/Results/",
   width = 4, height = 3, units = c("in"),
   dpi = 300)
 
 ```
 
-####Food security ~ Intercropping
-```{r}
-View(fs_df)
 
-fs_inter_bar <- ggplot(fs_df_ag, aes(sometimes_ic, fill=ordered(Level)))+
+####Food security ~ Inorganic fertilizer
+```{r}
+
+fs_inorg_bar <- ggplot(fs_inorg_ag, aes(sometimes_inorg, fill=ordered(Level)))+
   geom_bar(stat="count", position = "fill")+
   xlab("")+ylab("Proportion of sample")+
-  ggtitle("Food Security & Intercropping")+
+  ggtitle("Food Security & Inorganic Fertilizer")+
   scale_fill_manual(values = c("#eb4024", "#eb8932", "#e8af3c", "#449d8b"), name = "Food Security", labels = c("Severely food insecure", "Moderately food insecure", "Mildy food insecure", "Food secure"))+
-  scale_x_discrete(expand = c(0.5, 0), labels = c("Monocropped","Intercropped")) +
+  scale_x_discrete(expand = c(0.5, 0), labels = c("No inorganic \nfertilizer used","Inorganic fertilizer \nsometimes used")) +
   scale_y_continuous(expand = c(0, 0))+
-  theme_VSR()
+  theme_vsr()
 
-fs_inter_bar
+fs_inorg_bar
 
-ggsave("fs_inter_bar.png", plot = fs_inter_bar, device = "png", path = "~/Documents/",
+ggsave("fs_inorg_bar.png", plot = fs_inorg_bar, device = "png", path = "~/Documents/Bren/GP/3Graphs/Results/",
+  width = 4, height = 3, units = c("in"),
+  dpi = 300)
+
+```
+
+
+####Food security ~ Pesticides
+```{r}
+
+fs_pest_bar <- ggplot(fs_pest_ag, aes(sometimes_pest, fill=ordered(Level)))+
+  geom_bar(stat="count", position = "fill")+
+  xlab("")+ylab("Proportion of sample")+
+  ggtitle("Food Security & Pesticides")+
+  scale_fill_manual(values = c("#eb4024", "#eb8932", "#e8af3c", "#449d8b"), name = "Food Security", labels = c("Severely food insecure", "Moderately food insecure", "Mildy food insecure", "Food secure"))+
+  scale_x_discrete(expand = c(0.5, 0), labels = c("No pesticides used","Pesticides \nsometimes used")) +
+  scale_y_continuous(expand = c(0, 0))+
+  theme_vsr()
+
+fs_pest_bar
+
+ggsave("fs_pest_bar.png", plot = fs_pest_bar, device = "png", path = "~/Documents/Bren/GP/3Graphs/Results/",
   width = 4, height = 3, units = c("in"),
   dpi = 300)
 
