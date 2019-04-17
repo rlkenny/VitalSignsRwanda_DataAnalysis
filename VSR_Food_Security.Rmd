@@ -397,25 +397,25 @@ summary(hfias_ec_lm)
 
 ```{r}
 
-inter <- filter(hh_joined_df_ag, sometimes_ic == TRUE)
-dont <- filter(hh_joined_df_ag, sometimes_ic == FALSE)
+#inter <- filter(hh_joined_df_ag, sometimes_ic == TRUE)
+#dont <- filter(hh_joined_df_ag, sometimes_ic == FALSE)
   
 
-mean(inter$hfias)
+#mean(inter$hfias)
 
-mean(dont$hfias)
+#mean(dont$hfias)
 
 
-median(inter$hfias)
-median(dont$hfias)
+#median(inter$hfias)
+#median(dont$hfias)
 ```
 
 
 
 
 ```{r}
-hist(inter$hfias)
-hist(dont$hfias)
+#hist(inter$hfias)
+#hist(dont$hfias)
 ```
 
 
@@ -446,7 +446,7 @@ fs_pest_ag <- mutate(hh_joined_pest_ag, Level = ifelse(hh_joined_pest_ag$hfias =
 ```{r}
 #Set theme
 theme_vsr <- function () { 
-    theme_classic(base_size=9, base_family="Palatino")+
+    theme_classic(base_size=9, base_family="Avenir")+
     theme(plot.title = element_text(face="bold"), legend.title = element_text(face="bold"))
 }
 ```
@@ -456,7 +456,7 @@ theme_vsr <- function () {
 #Food security by landscape
 FS_landscape <- ggplot(fs_df, aes(x=landscape_no, fill=rev(ordered(Level))))+
   geom_bar(stat="count", position = "fill")+
-  scale_fill_manual(values = c("#eb4024", "#eb8932", "#e8af3c", "#449d8b"), name = "Food Security", labels = c("Severely food insecure", "Moderately food insecure", "Mildy food insecure", "Food secure"))+
+  scale_fill_manual(values = c("#eb4024", "#eb8932", "#e8af3c", "#85bcc1"), name = "Food Security", labels = c("Severely food insecure", "Moderately food insecure", "Mildy food insecure", "Food secure"))+
   scale_x_discrete(expand = c(0.08,0))+ 
   scale_y_continuous(labels=scales::percent, expand = c(0,0))+
   ggtitle("Food Security and Landscape")+
@@ -471,7 +471,7 @@ ggsave("FS_landscape.png", plot = FS_landscape, device = "png", path = "~/Docume
   dpi = 300)
 
 
-col_vector=c("#a6cd5b", "#d4cae1", "#eb8932", "#df417e", "#f4c28f", "#436caa", "#fffca5", "#72bad3", "#b3602a", "#666666", "#539d3e", "#b9d7e4",    "#efa09c", "#9f7731", "#9ce5d5", "#eb4024", "#e8af3c", "#999999", "#a66f5b", "#644195", "#f56e18", "#449d8b", "#752559", "#e7fbc9", "#693f26", "#2c6b96", "#ff8f7b", "#a68422", "#9c8dc3", "#85c9c8")
+col_vector=c("#a6cd5b", "#d4cae1", "#eb8932", "#df417e", "#f4c28f", "#436caa", "#fffca5", "#72bad3", "#b3602a", "#666666", "#539d3e", "#b9d7e4",    "#efa09c", "#9f7731", "#9ce5d5", "#eb4024", "#e8af3c", "#999999", "#a66f5b", "#644195", "#f56e18", "#85bcc1", "#752559", "#e7fbc9", "#693f26", "#2c6b96", "#ff8f7b", "#a68422", "#9c8dc3", "#85c9c8")
 
 FS_level_crops <- ggplot(fs_df, aes(x=Level, fill=ordered(crop_name)))+
   geom_bar(stat="count", position = "fill")+
@@ -512,7 +512,7 @@ ggsave("FS_level_crops.png", plot = FS_level_crops, device = "png", path = "~/Do
 #design my own theme
                                               
 theme_VSR <- function () { 
-    theme_classic(base_size=10, base_family="Palatino")+
+    theme_classic(base_size=10, base_family="Avenir")+
     theme(plot.title = element_text(hjust = 0.5, face="bold"), legend.title = element_text(face="bold"))
 }
 
@@ -526,7 +526,7 @@ fs_inter_bar <- ggplot(fs_ic_ag, aes(sometimes_ic, fill=ordered(Level)))+
   geom_bar(stat="count", position = "fill")+
   xlab("")+ylab("Proportion of sample")+
   ggtitle("Food Security & Intercropping")+
-  scale_fill_manual(values = c("#eb4024", "#eb8932", "#e8af3c", "#449d8b"), name = "Food Security", labels = c("Severely food insecure", "Moderately food insecure", "Mildy food insecure", "Food secure"))+
+  scale_fill_manual(values = c("#eb4024", "#eb8932", "#e8af3c", "#85bcc1"), name = "Food Security", labels = c("Severely food insecure", "Moderately food insecure", "Mildy food insecure", "Food secure"))+
   scale_x_discrete(expand = c(0.5, 0), labels = c("Monocropped","Intercropped")) +
   scale_y_continuous(expand = c(0, 0))+
   theme_vsr()
@@ -547,7 +547,7 @@ fs_inorg_bar <- ggplot(fs_inorg_ag, aes(sometimes_inorg, fill=ordered(Level)))+
   geom_bar(stat="count", position = "fill")+
   xlab("")+ylab("Proportion of sample")+
   ggtitle("Food Security & Inorganic Fertilizer")+
-  scale_fill_manual(values = c("#eb4024", "#eb8932", "#e8af3c", "#449d8b"), name = "Food Security", labels = c("Severely food insecure", "Moderately food insecure", "Mildy food insecure", "Food secure"))+
+  scale_fill_manual(values = c("#eb4024", "#eb8932", "#e8af3c", "#85bcc1"), name = "Food Security", labels = c("Severely food insecure", "Moderately food insecure", "Mildy food insecure", "Food secure"))+
   scale_x_discrete(expand = c(0.5, 0), labels = c("No inorganic \nfertilizer used","Inorganic fertilizer \nsometimes used")) +
   scale_y_continuous(expand = c(0, 0))+
   theme_vsr()
@@ -568,7 +568,7 @@ fs_pest_bar <- ggplot(fs_pest_ag, aes(sometimes_pest, fill=ordered(Level)))+
   geom_bar(stat="count", position = "fill")+
   xlab("")+ylab("Proportion of sample")+
   ggtitle("Food Security & Pesticides")+
-  scale_fill_manual(values = c("#eb4024", "#eb8932", "#e8af3c", "#449d8b"), name = "Food Security", labels = c("Severely food insecure", "Moderately food insecure", "Mildy food insecure", "Food secure"))+
+  scale_fill_manual(values = c("#eb4024", "#eb8932", "#e8af3c", "#85bcc1"), name = "Food Security", labels = c("Severely food insecure", "Moderately food insecure", "Mildy food insecure", "Food secure"))+
   scale_x_discrete(expand = c(0.5, 0), labels = c("No pesticides used","Pesticides \nsometimes used")) +
   scale_y_continuous(expand = c(0, 0))+
   theme_vsr()

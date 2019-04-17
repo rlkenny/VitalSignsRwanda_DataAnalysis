@@ -161,7 +161,7 @@ round_2 <- filter(joined_df, round == "2")
 ```{r}
 
 theme_vsr <- function () { 
-    theme_classic(base_size=9, base_family="Palatino")+
+    theme_classic(base_size=9, base_family="Helvetica-Narrow")+
     theme(plot.title = element_text(face="bold"), legend.title = element_text(face="bold"))
 }
 
@@ -186,7 +186,7 @@ A_crops_grown <- ggplot(filter(joined_df, crop_name != "NA"), aes(x= crop_name, 
 
 A_crops_grown
 
-ggsave("A_crops_grown.png", plot = A_crops_grown, device = "png", path = "~/Documents/Bren/GP/3Graphs/Appendix/",
+ggsave("A_crops_grown.png", plot = A_crops_grown, device = "png", path = "~/Documents/Bren/GP/3Graphs/Descriptives/",
   width = 6, height = 4.5, units = c("in"),
   dpi = 300)
 
@@ -209,13 +209,13 @@ A_food_loss <-
 
 A_food_loss
 
-ggsave("A_food_loss.png", plot = A_food_loss, device = "png", path = "~/Documents/Bren/GP/3Graphs/Appendix/",
+ggsave("A_food_loss.png", plot = A_food_loss, device = "png", path = "~/Documents/Bren/GP/3Graphs/Descriptives/",
   width = 3.5, height = 4.5, units = c("in"),
   dpi = 300)
 
 ```
 
-###Soil quality bby landscape
+###Soil quality by landscape
 ```{r}
 #Soil quality by landscape
 A_soil_quality <- ggplot(data = filter(joined_df, ag3a_10 != "NA"), aes(landscape_no, fill=ordered(ag3a_10))) +
@@ -228,7 +228,7 @@ A_soil_quality <- ggplot(data = filter(joined_df, ag3a_10 != "NA"), aes(landscap
   theme_vsr()+
   scale_y_continuous(expand=c(0,0))
 
-ggsave("A_soil_quality.png", plot = A_soil_quality, device = "png", path = "~/Documents/Bren/GP/3Graphs/Appendix/",
+ggsave("A_soil_quality.png", plot = A_soil_quality, device = "png", path = "~/Documents/Bren/GP/3Graphs/Descriptives/",
   width = 4.5, height = 3, units = c("in"),
   dpi = 300)
 ```
@@ -247,7 +247,7 @@ A_reason_inter <- ggplot(data=filter(joined_df, ag4a_05 != "NA"), aes(x=ag4a_05,
 
 A_reason_inter
 
-ggsave("A_reason_inter.png", plot = A_reason_inter, device = "png", path = "~/Documents/Bren/GP/3Graphs/Appendix/",
+ggsave("A_reason_inter.png", plot = A_reason_inter, device = "png", path = "~/Documents/Bren/GP/3Graphs/Descriptives/",
   width = 6, height = 3.5, units = c("in"),
   dpi = 300)
 
@@ -262,7 +262,9 @@ ggsave("A_reason_inter.png", plot = A_reason_inter, device = "png", path = "~/Do
 ####Inorganic Fertilizer
 ```{r}
 
-A_crop_inorg_fert <- ggplot(data=joined_df, aes(x=ag3a_07_1, y=ag3a_47, fill=ag3a_46))+
+#.404686
+
+A_crop_inorg_fert <- ggplot(data=joined_df, aes(x=ag3a_07_1, y=(ag3a_47/ag4a_08), fill=ag3a_46))+
   geom_bar(stat="identity")+
   xlab("Crop type")+
   ylab("Total amount of inorganic fertilizer applied (kg)")+
@@ -274,7 +276,7 @@ A_crop_inorg_fert <- ggplot(data=joined_df, aes(x=ag3a_07_1, y=ag3a_47, fill=ag3
 
 A_crop_inorg_fert
 
-ggsave("A_crop_inorg_fert.png", plot = A_crop_inorg_fert, device = "png", path = "~/Documents/Bren/GP/3Graphs/Appendix/",
+ggsave("A_crop_inorg_fert.png", plot = A_crop_inorg_fert, device = "png", path = "~/Documents/Bren/GP/3Graphs/Descriptives/",
   width = 6.25, height = 4, units = c("in"),
   dpi = 300)
 
@@ -291,7 +293,7 @@ A_landscape_inorg_fert <- ggplot(data=joined_df, aes(x=landscape_no, y=ag3a_47, 
 
 A_landscape_inorg_fert
 
-ggsave("A_landscape_inorg_fert.png", plot = A_landscape_inorg_fert, device = "png", path = "~/Documents/Bren/GP/3Graphs/Appendix/",
+ggsave("A_landscape_inorg_fert.png", plot = A_landscape_inorg_fert, device = "png", path = "~/Documents/Bren/GP/3Graphs/Descriptives/",
   width = 4.5, height = 3.5, units = c("in"),
   dpi = 300)
 
@@ -301,7 +303,7 @@ ggsave("A_landscape_inorg_fert.png", plot = A_landscape_inorg_fert, device = "pn
 ####Organic Fertilizer
 ```{r}
 
-A_crop_org_fert <- ggplot(data=joined_df, aes(x=ag3a_07_1, y=ag3a_40, fill=ag3a_39a))+
+A_crop_org_fert <- ggplot(data=joined_df, aes(x=ag3a_07_1, y=(ag3a_40/ag4a_08), fill=ag3a_39a))+
   geom_bar(stat="identity")+
   xlab("Crop type")+
   ylab("Total amount of organic fertilizer applied (kg)")+
@@ -313,7 +315,7 @@ A_crop_org_fert <- ggplot(data=joined_df, aes(x=ag3a_07_1, y=ag3a_40, fill=ag3a_
 
 A_crop_org_fert
 
-ggsave("A_crop_org_fert.png", plot = A_crop_org_fert, device = "png", path = "~/Documents/Bren/GP/3Graphs/Appendix/",
+ggsave("A_crop_org_fert.png", plot = A_crop_org_fert, device = "png", path = "~/Documents/Bren/GP/3Graphs/Descriptives/",
   width = 5.7, height = 4, units = c("in"),
   dpi = 300)
 
@@ -330,7 +332,7 @@ A_landscape_org_fert <- ggplot(data=joined_df, aes(x=landscape_no, y=ag3a_40, fi
 
 A_landscape_org_fert
 
-ggsave("A_landscape_org_fert.png", plot = A_landscape_org_fert, device = "png", path = "~/Documents/Bren/GP/3Graphs/Appendix/",
+ggsave("A_landscape_org_fert.png", plot = A_landscape_org_fert, device = "png", path = "~/Documents/Bren/GP/3Graphs/Descriptives/",
   width = 4.7, height = 3.5, units = c("in"),
   dpi = 300)
 
@@ -339,7 +341,7 @@ ggsave("A_landscape_org_fert.png", plot = A_landscape_org_fert, device = "png", 
 ####Pesticides
 ```{r}
 
-A_crop_pest <- ggplot(data=joined_df, aes(x=ag3a_07_1, y=ag3a_60_1, fill=ag3a_59))+
+A_crop_pest <- ggplot(data=joined_df, aes(x=ag3a_07_1, y=(ag3a_60_1/ag4a_08), fill=ag3a_59))+
   geom_bar(stat="identity")+
   xlab("Crop type")+
   ylab("Total amount of pesticides applied (kg)")+
@@ -351,7 +353,7 @@ A_crop_pest <- ggplot(data=joined_df, aes(x=ag3a_07_1, y=ag3a_60_1, fill=ag3a_59
 
 A_crop_pest
 
-ggsave("A_crop_pest.png", plot = A_crop_pest, device = "png", path = "~/Documents/Bren/GP/3Graphs/Appendix/",
+ggsave("A_crop_pest.png", plot = A_crop_pest, device = "png", path = "~/Documents/Bren/GP/3Graphs/Descriptives/",
   width = 5.25, height = 4, units = c("in"),
   dpi = 300)
 
@@ -368,7 +370,7 @@ A_landscape_pest <- ggplot(data=joined_df, aes(x=landscape_no, y=ag3a_60_1, fill
 
 A_landscape_pest
 
-ggsave("A_landscape_pest.png", plot = A_landscape_pest, device = "png", path = "~/Documents/Bren/GP/3Graphs/Appendix/",
+ggsave("A_landscape_pest.png", plot = A_landscape_pest, device = "png", path = "~/Documents/Bren/GP/3Graphs/Descriptives/",
   width = 4.5, height = 3.5, units = c("in"),
   dpi = 300)
 

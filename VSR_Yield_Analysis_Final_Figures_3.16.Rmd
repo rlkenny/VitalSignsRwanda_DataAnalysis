@@ -341,14 +341,14 @@ erode_lm <- n30 %>%
 ```{r}
 
 theme_vsr <- function () { 
-    theme_classic(base_size=9, base_family="Palatino")+
+    theme_classic(base_size=9, base_family="Avenir")+
     theme(plot.title = element_text(face="bold"), legend.title = element_text(face="bold"))
 }
 
 ```
 
 **If distinct colors are needed**
-+scale_fill_manual(values = c("#e03c21", "#de6e5b", "eb8932", "#dab03a", "#e6cd4f", "#b4ce8f", "90c3ab", "449d8b", "#5498af", "#85b6c4", "#5498af") 
++scale_fill_manual(values = c("#e03c21", "#de6e5b", "eb8932", "#dab03a", "#e6cd4f", "#b4ce8f", "90c3ab", "55ad71", "#5498af", "#85b6c4", "#5498af") 
 
 
 ###Done with linear models KG, simple linear model COEF plots below
@@ -385,12 +385,12 @@ lm_plot_org <- dwplot(ogfert_coefs, dodge_size =  .7)+
   geom_vline(xintercept = 0, linetype = 'dashed', colour = "darkgrey"  )+
   ggtitle("95% Confidence Interval: Organic Fertilizer")+
 xlab("Yield (kg/hectare planted)")+
-  scale_color_manual(name="Crop Type", values = c("#a6cd5b", "#eb8932", "#72bad3", "#eb4024", "#e8af3c", "#449d8b", "#752559", "#2c6b96", "#9c8dc3")) +
+  scale_color_manual(name="Crop Type", values = c("#a6cd5b", "#eb8932", "#85bcc1", "#eb4024", "#e8af3c", "#55ad71", "#70519b", "#3f7a82", "#9c8dc3")) +
   theme_vsr()
 
 lm_plot_org
 
-ggsave("lm_plot_org.png", plot = lm_plot_org, device = "png", path = "~/Documents/Bren/GP/3Graphs/Results/",
+ggsave("lm_plot_org.png", plot = lm_plot_org, device = "png", path = "~/Documents/Bren/GP/3Graphs/Poster/",
   width = 4, height = 3.3, units = c("in"),
   dpi = 300)
 
@@ -408,12 +408,12 @@ ggtitle("Inorg Fert Coefficients:\nKGs Per HA Planted")+
   geom_vline(xintercept = 0, linetype = 'dashed', colour = "darkgrey"  )+
   ggtitle("95% Confidence Interval: Inorganic Fertilizer")+
 xlab("Yield (kg/hectare planted)")+
-  scale_color_manual(name="Crop Type", values = c("#eb8932", "#eb4024", "#e8af3c", "#a66f5b","#2c6b96", "#9c8dc3")) +
+  scale_color_manual(name="Crop Type", values = c("#eb8932", "#eb4024", "#e8af3c", "#a66f5b","#3f7a82", "#9c8dc3")) +
   theme_vsr()
 
 lm_plot_inorg
 
-ggsave("lm_plot_inorg.png", plot = lm_plot_inorg, device = "png", path = "~/Documents/Bren/GP/3Graphs/Results/",
+ggsave("lm_plot_inorg.png", plot = lm_plot_inorg, device = "png", path = "~/Documents/Bren/GP/3Graphs/Poster/",
   width = 4, height = 3.3, units = c("in"),
   dpi = 300)
 
@@ -436,7 +436,7 @@ xlab("Yield (kg/hectare planted)")+
 
 lm_plot_pest
 
-ggsave("lm_plot_pest.png", plot = lm_plot_pest, device = "png", path = "~/Documents/Bren/GP/3Graphs/Results/",
+ggsave("lm_plot_pest.png", plot = lm_plot_pest, device = "png", path = "~/Documents/Bren/GP/3Graphs/Poster/",
   width = 4, height = 3.3, units = c("in"),
   dpi = 300)
 
@@ -450,12 +450,12 @@ dwplot(inter_coefs, dodge_size =  .7)+
   geom_vline(xintercept = 0, linetype = 'dashed', colour = "darkgrey"  )+
   ggtitle("95% Confidence Interval: Intercropping")+
   xlab("Yield (kg/hectare planted)")+
-  scale_color_manual(name="Crop Type", values = c("#a6cd5b", "#eb8932", "#72bad3", "#eb4024", "#e8af3c", "#449d8b", "#752559")) +
+  scale_color_manual(name="Crop Type", values = c("#a6cd5b", "#eb8932", "#85bcc1", "#eb4024", "#e8af3c", "#55ad71", "#70519b")) +
   theme_vsr()
 
 lm_plot_inter
 
-ggsave("lm_plot_inter.png", plot = lm_plot_inter, device = "png", path = "~/Documents/Bren/GP/3Graphs/Results/",
+ggsave("lm_plot_inter.png", plot = lm_plot_inter, device = "png", path = "~/Documents/Bren/GP/3Graphs/Poster/",
   width = 4, height = 3.3, units = c("in"),
   dpi = 300)
 
@@ -475,12 +475,12 @@ ggtitle("Improved Seed Coefficients:\nKGs Per HA Planted")+
   geom_vline(xintercept = 0, linetype = 'dashed', colour = "darkgrey"  )+
   ggtitle("95% Confidence Interval: Improved Seeds")+
   xlab("Yield (kg/hectare planted)")+
-  scale_color_manual(name="Crop Type", values = c("#eb8932", "#72bad3", "#eb4024", "#e8af3c", "#a66f5b", "#449d8b", "#752559", "#2c6b96", "#9c8dc3")) +
+  scale_color_manual(name="Crop Type", values = c("#eb8932", "#85bcc1", "#eb4024", "#e8af3c", "#a66f5b", "#55ad71", "#70519b", "#3f7a82", "#9c8dc3")) +
   theme_vsr()
 
 lm_plot_seed
 
-ggsave("lm_plot_seed.png", plot = lm_plot_seed, device = "png", path = "~/Documents/Bren/GP/3Graphs/Results/",
+ggsave("lm_plot_seed.png", plot = lm_plot_seed, device = "png", path = "~/Documents/Bren/GP/3Graphs/Poster/",
   width = 4, height = 3.3, units = c("in"),
   dpi = 300)
 
@@ -498,14 +498,14 @@ ggtitle("Erosion Control Coefficients:\nKGs Per HA Planted")+
   geom_vline(xintercept = 0, linetype = 'dashed', colour = "darkgrey"  )+
   ggtitle("95% Confidence Interval: Erosion Control")+
 xlab("Yield (kg/hectare planted)")+
-  scale_color_manual(name="Crop Type", values = c("#a6cd5b", "#eb8932", "#72bad3", "#eb4024", "#e8af3c", "#a66f5b", "#449d8b", "#752559", "#2c6b96", "#9c8dc3")) +
+  scale_color_manual(name="Crop Type", values = c("#a6cd5b", "#eb8932", "#85bcc1", "#eb4024", "#e8af3c", "#a66f5b", "#55ad71", "#70519b", "#3f7a82", "#9c8dc3")) +
   theme_vsr()
 
 lm_plot_erosion
 #  relabel_predictors(c("erosion_cTRUE"=" "))+
 #  theme(axis.ticks.y = element_blank())+
 
-ggsave("lm_plot_erosion.png", plot = lm_plot_erosion, device = "png", path = "~/Documents/Bren/GP/3Graphs/Results/",
+ggsave("lm_plot_erosion.png", plot = lm_plot_erosion, device = "png", path = "~/Documents/Bren/GP/3Graphs/Poster/",
   width = 4, height = 3.3, units = c("in"),
   dpi = 300)
 
@@ -617,7 +617,7 @@ mlm_plot_paddy
 mod_sold <-lm.cluster(kg_perha_planted ~ intercropped + purchased_seed + inorg_perha_planted+ org_perha_planted + pest_perha_planted +  landscape_no + round + season + erosion_c, data = Sorghum, cluster = "cluster")
 
 mlm_plot_sorghum <- 
-coefplot(mod_sold$lm_res, title = '\n\nSorghum (n= 78)', ylab="", xlab = "Kg per HA Planted", color="#449d8b", predictors = c("intercropped", "erosion_c", "purchased_seed", "inorg_perha_planted", "org_perha_planted","pest_perha_planted"),  sort="alphabetical", newNames=c(erosion_cTRUE="Erosion Control", intercroppedTRUE = "Intercropped", purchased_seedTRUE = "Purchased Seed", inorg_perha_planted ="10s KGs of Inorganic Fertilizer", org_perha_planted = "100s KGs of Organic Fertilizer", pest_perha_planted = "10s KGs of Pesticide"))+
+coefplot(mod_sold$lm_res, title = '\n\nSorghum (n= 78)', ylab="", xlab = "Kg per HA Planted", color="#55ad71", predictors = c("intercropped", "erosion_c", "purchased_seed", "inorg_perha_planted", "org_perha_planted","pest_perha_planted"),  sort="alphabetical", newNames=c(erosion_cTRUE="Erosion Control", intercroppedTRUE = "Intercropped", purchased_seedTRUE = "Purchased Seed", inorg_perha_planted ="10s KGs of Inorganic Fertilizer", org_perha_planted = "100s KGs of Organic Fertilizer", pest_perha_planted = "10s KGs of Pesticide"))+
   theme_vsr()
 
 mlm_plot_sorghum
@@ -627,7 +627,7 @@ mlm_plot_sorghum
 mod_soyold <-lm.cluster(kg_perha_planted ~ intercropped + purchased_seed + inorg_perha_planted+ org_perha_planted + pest_perha_planted +  landscape_no + round + season + erosion_c, data = Soyabeans, cluster = "cluster")
 
 mlm_plot_soyabeans <- 
-coefplot(mod_soyold$lm_res, title = '\n\nSoyabeans (n= 32)', ylab="", xlab = "Kg per HA Planted", color="#752559", predictors = c("intercropped", "erosion_c", "purchased_seed", "inorg_perha_planted", "org_perha_planted","pest_perha_planted"),  sort="alphabetical", newNames=c(erosion_cTRUE="Erosion Control", intercroppedTRUE = "Intercropped", purchased_seedTRUE = "Purchased Seed", inorg_perha_planted ="10s KGs of Inorganic Fertilizer", org_perha_planted = "100s KGs of Organic Fertilizer", pest_perha_planted = "10s KGs of Pesticide"))+
+coefplot(mod_soyold$lm_res, title = '\n\nSoyabeans (n= 32)', ylab="", xlab = "Kg per HA Planted", color="#70519b", predictors = c("intercropped", "erosion_c", "purchased_seed", "inorg_perha_planted", "org_perha_planted","pest_perha_planted"),  sort="alphabetical", newNames=c(erosion_cTRUE="Erosion Control", intercroppedTRUE = "Intercropped", purchased_seedTRUE = "Purchased Seed", inorg_perha_planted ="10s KGs of Inorganic Fertilizer", org_perha_planted = "100s KGs of Organic Fertilizer", pest_perha_planted = "10s KGs of Pesticide"))+
   theme_vsr()
 
 mlm_plot_soyabeans
@@ -636,7 +636,7 @@ mlm_plot_soyabeans
 #MLM PLOT SWEET POTATOES
 mod_spoldc <-lm.cluster(kg_perha_planted ~ intercropped +  erosion_c + purchased_seed + inorg_perha_planted + org_perha_planted  + landscape_no, data = SP, cluster = "cluster")
 
-mlm_plot_sweet_potatoes <- coefplot(mod_spoldc$lm_res, title = '\nSweet Potatoes (n= 87)', ylab="", xlab = "Kg per HA Planted", color = "#2c6b96", predictors = c("intercropped", "erosion_c", "purchased_seed", "inorg_perha_planted", "org_perha_planted"),  sort="alphabetical", newNames=c(erosion_cTRUE="Erosion Control", intercroppedTRUE = "Intercropped", purchased_seedTRUE = "Purchased Seed", inorg_perha_planted ="10s KGs of Inorganic Fertilizer", org_perha_planted = "100s KGs of Organic Fertilizer")) +
+mlm_plot_sweet_potatoes <- coefplot(mod_spoldc$lm_res, title = '\nSweet Potatoes (n= 87)', ylab="", xlab = "Kg per HA Planted", color = "#3f7a82", predictors = c("intercropped", "erosion_c", "purchased_seed", "inorg_perha_planted", "org_perha_planted"),  sort="alphabetical", newNames=c(erosion_cTRUE="Erosion Control", intercroppedTRUE = "Intercropped", purchased_seedTRUE = "Purchased Seed", inorg_perha_planted ="10s KGs of Inorganic Fertilizer", org_perha_planted = "100s KGs of Organic Fertilizer")) +
   theme_vsr()
 
 mlm_plot_sweet_potatoes
@@ -663,7 +663,7 @@ ggdraw() +
   draw_plot(mlm_plot_irish_potatoes, x = .5, y = .5, width = .5, height = .5) +
   draw_plot(mlm_plot_maize, x = 0, y = 0, width = .5, height = 0.5) +
   draw_plot(mlm_plot_paddy, x = .5, y = 0, width = .5, height = 0.5) 
-  draw_label("95% Confidence interval of Multiple Linear Regression Coefficients: Harvest Volume", x=.5, y=.97, fontfamily = "Palatino")
+  draw_label("95% Confidence interval of Multiple Linear Regression Coefficients: Harvest Volume", x=.5, y=.97, fontfamily = "Avenir")
 
 mlm_first4
 
@@ -674,7 +674,7 @@ ggdraw() +
   draw_plot(mlm_plot_soyabeans, x = .5, y = .5, width = .5, height = .5) +
   draw_plot(mlm_plot_sweet_potatoes, x = 0, y = 0, width = .5, height = 0.5) +
   draw_plot(mlm_plot_wheat, x = .5, y = 0, width = .5, height = 0.5) +
-  draw_label("95% Confidence interval of Multiple Linear Regression Coefficients: Harvest Volume", x=.5, y=.97, fontfamily = "Palatino")
+  draw_label("95% Confidence interval of Multiple Linear Regression Coefficients: Harvest Volume", x=.5, y=.97, fontfamily = "Avenir")
 
 mlm_last4
 
@@ -689,15 +689,15 @@ ggdraw() +
   draw_plot(mlm_plot_soyabeans, x = .5, y = .25, width = .5, height = .25) +
   draw_plot(mlm_plot_sweet_potatoes, x = 0, y = 0, width = .5, height = 0.25) +
   draw_plot(mlm_plot_wheat, x = .5, y = 0, width = .5, height = 0.25) +
-  draw_label("95% Confidence interval of Multiple Linear Regression Coefficients: Harvest Volume", x=.5, y=.99, fontfamily = "Palatino")
+  draw_label("95% Confidence interval of Multiple Linear Regression Coefficients: Harvest Volume", x=.5, y=.99, fontfamily = "Avenir")
 
 mlm_ALL
 
 
 
 
-ggsave("mlm_ALL.png", plot = mlm_ALL, device = "png", path = "~/Documents/Bren/GP/3Graphs/Results/",
-  width = 7.5, height = 10, units = c("in"),
-  dpi = 300)
+ggsave("mlm_ALL.png", plot = mlm_ALL, device = "png", path = "~/Documents/Bren/GP/3Graphs/Poster/",
+  width = 7.5, height = 8.5, units = c("in"),
+  dpi = 700)
 
 ```
