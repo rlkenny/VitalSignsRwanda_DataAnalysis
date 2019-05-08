@@ -384,7 +384,7 @@ ogfert_coefs$model <- ogfert_coefs$crop_name
 lm_plot_org <- dwplot(ogfert_coefs, dodge_size =  .7)+
   geom_vline(xintercept = 0, linetype = 'dashed', colour = "darkgrey"  )+
   ggtitle("95% Confidence Interval: Organic Fertilizer")+
-xlab("Yield (kg/hectare planted)")+
+xlab("Crop yield (kg/hectare)")+
   scale_color_manual(name="Crop Type", values = c("#a6cd5b", "#eb8932", "#85bcc1", "#eb4024", "#e8af3c", "#55ad71", "#70519b", "#3f7a82", "#9c8dc3")) +
   theme_vsr()
 
@@ -407,7 +407,7 @@ lm_plot_inorg <- dwplot(inogfert_coefs, dodge_size =  .7)+
 ggtitle("Inorg Fert Coefficients:\nKGs Per HA Planted")+
   geom_vline(xintercept = 0, linetype = 'dashed', colour = "darkgrey"  )+
   ggtitle("95% Confidence Interval: Inorganic Fertilizer")+
-xlab("Yield (kg/hectare planted)")+
+xlab("Crop yield (kg/hectare)")+
   scale_color_manual(name="Crop Type", values = c("#eb8932", "#eb4024", "#e8af3c", "#a66f5b","#3f7a82", "#9c8dc3")) +
   theme_vsr()
 
@@ -430,7 +430,7 @@ lm_plot_pest <- dwplot(pest_coefs, dodge_size =  .7)+
 ggtitle("Pesticide Coefficients:\nKGs Per HA Planted")+
   geom_vline(xintercept = 0, linetype = 'dashed', colour = "darkgrey"  )+
   ggtitle("95% Confidence Interval: Pesticides")+
-xlab("Yield (kg/hectare planted)")+
+xlab("Crop yield (kg/hectare)")+
   scale_color_manual(name="Crop Type", values = c("#eb8932", "#eb4024", "#e8af3c", "#a66f5b")) +
   theme_vsr()
 
@@ -449,7 +449,7 @@ lm_plot_inter <-
 dwplot(inter_coefs, dodge_size =  .7)+
   geom_vline(xintercept = 0, linetype = 'dashed', colour = "darkgrey"  )+
   ggtitle("95% Confidence Interval: Intercropping")+
-  xlab("Yield (kg/hectare planted)")+
+  xlab("Crop yield (kg/hectare)")+
   scale_color_manual(name="Crop Type", values = c("#a6cd5b", "#eb8932", "#85bcc1", "#eb4024", "#e8af3c", "#55ad71", "#70519b")) +
   theme_vsr()
 
@@ -474,7 +474,7 @@ lm_plot_seed <- dwplot(seed_coefs, dodge_size =  .7)+
 ggtitle("Improved Seed Coefficients:\nKGs Per HA Planted")+
   geom_vline(xintercept = 0, linetype = 'dashed', colour = "darkgrey"  )+
   ggtitle("95% Confidence Interval: Improved Seeds")+
-  xlab("Yield (kg/hectare planted)")+
+  xlab("Crop yield (kg/hectare)")+
   scale_color_manual(name="Crop Type", values = c("#eb8932", "#85bcc1", "#eb4024", "#e8af3c", "#a66f5b", "#55ad71", "#70519b", "#3f7a82", "#9c8dc3")) +
   theme_vsr()
 
@@ -497,7 +497,7 @@ lm_plot_erosion <- dwplot(erode_coefs, dodge_size =  .7)+
 ggtitle("Erosion Control Coefficients:\nKGs Per HA Planted")+
   geom_vline(xintercept = 0, linetype = 'dashed', colour = "darkgrey"  )+
   ggtitle("95% Confidence Interval: Erosion Control")+
-xlab("Yield (kg/hectare planted)")+
+xlab("Crop yield (kg/hectare)")+
   scale_color_manual(name="Crop Type", values = c("#a6cd5b", "#eb8932", "#85bcc1", "#eb4024", "#e8af3c", "#a66f5b", "#55ad71", "#70519b", "#3f7a82", "#9c8dc3")) +
   theme_vsr()
 
@@ -578,7 +578,7 @@ Wheat <- select(Wheat, "intercropped", "purchased_seed", "erosion_c", "inorg_per
 #MLM PLOT BEANS
 mod_boldc <-lm.cluster(kg_perha_planted ~  intercropped + erosion_c + purchased_seed +inorg_perha_planted + org_perha_planted + landscape_no, data = Beans, cluster = "cluster")
 
-mlm_plot_beans <- coefplot(mod_boldc$lm_res, title = '\n\nBeans (n=647) ', ylab="", xlab = "Kg per HA Planted", color = "#eb8932", predictors = c("intercropped", "erosion_c", "purchased_seed", "inorg_perha_planted", "org_perha_planted", "pest_perha_planted"),  sort="alphabetical", newNames=c(erosion_cTRUE="Erosion Control", intercroppedTRUE = "Intercropped", purchased_seedTRUE = "Purchased Seed", inorg_perha_planted ="10s KGs of Inorganic Fertilizer", org_perha_planted = "100s KGs of Organic Fertilizer")) +
+mlm_plot_beans <- coefplot(mod_boldc$lm_res, title = '\n\nBeans (n=647) ', ylab="", xlab = "Crop yield (kg/hectare)", color = "#eb8932", predictors = c("intercropped", "erosion_c", "purchased_seed", "inorg_perha_planted", "org_perha_planted", "pest_perha_planted"),  sort="alphabetical", newNames=c(erosion_cTRUE="Erosion Control", intercroppedTRUE = "Intercropped", purchased_seedTRUE = "Purchased Seed", inorg_perha_planted ="10s KGs of Inorganic Fertilizer", org_perha_planted = "100s KGs of Organic Fertilizer")) +
   theme_vsr()
 
 mlm_plot_beans
@@ -587,7 +587,7 @@ mlm_plot_beans
 #MLM PLOT IRISH POTATOES
 mod_poldc <-lm.cluster(kg_perha_planted ~ intercropped + purchased_seed + inorg_perha_planted+ org_perha_planted + pest_perha_planted +  landscape_no + round + season + erosion_c, data = Potatoes, cluster = "cluster")
 
-mlm_plot_irish_potatoes <- coefplot(mod_poldc$lm_res, title = '\n\nIrish Potatoes (n=191)', ylab="", xlab = "Kg per HA Planted", color="#eb4024", predictors = c("intercropped", "erosion_c", "purchased_seed", "inorg_perha_planted", "org_perha_planted","pest_perha_planted"),  sort="alphabetical", newNames=c(erosion_cTRUE="Erosion Control", intercroppedTRUE = "Intercropped", purchased_seedTRUE = "Purchased Seed", inorg_perha_planted ="10s KGs of Inorganic Fertilizer", org_perha_planted = "100s KGs of Organic Fertilizer", pest_perha_planted = "10s KGs of Pesticide"))+
+mlm_plot_irish_potatoes <- coefplot(mod_poldc$lm_res, title = '\n\nIrish Potatoes (n=191)', ylab="", xlab = "Crop yield (kg/hectare)", color="#eb4024", predictors = c("intercropped", "erosion_c", "purchased_seed", "inorg_perha_planted", "org_perha_planted","pest_perha_planted"),  sort="alphabetical", newNames=c(erosion_cTRUE="Erosion Control", intercroppedTRUE = "Intercropped", purchased_seedTRUE = "Purchased Seed", inorg_perha_planted ="10s KGs of Inorganic Fertilizer", org_perha_planted = "100s KGs of Organic Fertilizer", pest_perha_planted = "10s KGs of Pesticide"))+
   theme_vsr()
 
 mlm_plot_irish_potatoes
@@ -597,7 +597,7 @@ mlm_plot_irish_potatoes
 mod_moldc <-lm.cluster(kg_perha_planted ~ intercropped + purchased_seed + inorg_perha_planted + org_perha_planted + pest_perha_planted +  landscape_no + round + season + erosion_c, data = Maize, cluster = "cluster")
 
 mlm_plot_maize <- 
-coefplot(mod_moldc$lm_res, predictors = c("intercropped", "erosion_c", "purchased_seed", "inorg_perha_planted", "org_perha_planted"), title = '\nMaize (n=348)', ylab="", xlab = "Kg per HA Planted", color = "#e8af3c",  sort="alphabetical", newNames=c(erosion_cTRUE="Erosion Control", intercroppedTRUE = "Intercropped", purchased_seedTRUE = "Purchased Seed", inorg_perha_planted ="10s KGs of Inorganic Fertilizer", org_perha_planted = "100s KGs of Organic Fertilizer"))+
+coefplot(mod_moldc$lm_res, predictors = c("intercropped", "erosion_c", "purchased_seed", "inorg_perha_planted", "org_perha_planted"), title = '\nMaize (n=348)', ylab="", xlab = "Crop yield (kg/hectare)", color = "#e8af3c",  sort="alphabetical", newNames=c(erosion_cTRUE="Erosion Control", intercroppedTRUE = "Intercropped", purchased_seedTRUE = "Purchased Seed", inorg_perha_planted ="10s KGs of Inorganic Fertilizer", org_perha_planted = "100s KGs of Organic Fertilizer"))+
   theme_vsr()
 
 mlm_plot_maize
@@ -607,7 +607,7 @@ mlm_plot_maize
 mod_pyold <-lm.cluster(kg_perha_planted ~ intercropped + purchased_seed + inorg_perha_planted+ org_perha_planted + pest_perha_planted +  landscape_no + round + season + erosion_c, data = Paddy, cluster = "cluster")
 
 mlm_plot_paddy <- 
-coefplot(mod_pyold$lm_res, title = '\n\nPaddy (n= 35)', ylab="", xlab = "Kg per HA Planted", color="#a66f5b", predictors = c("intercropped", "erosion_c", "purchased_seed", "inorg_perha_planted", "org_perha_planted","pest_perha_planted"),  sort="alphabetical", newNames=c(erosion_cTRUE="Erosion Control", intercroppedTRUE = "Intercropped", purchased_seedTRUE = "Purchased Seed", inorg_perha_planted ="10s KGs of Inorganic Fertilizer", org_perha_planted = "100s KGs of Organic Fertilizer", pest_perha_planted = "10s KGs of Pesticide"))+
+coefplot(mod_pyold$lm_res, title = '\n\nPaddy (n= 35)', ylab="", xlab = "Crop yield (kg/hectare)", color="#a66f5b", predictors = c("intercropped", "erosion_c", "purchased_seed", "inorg_perha_planted", "org_perha_planted","pest_perha_planted"),  sort="alphabetical", newNames=c(erosion_cTRUE="Erosion Control", intercroppedTRUE = "Intercropped", purchased_seedTRUE = "Purchased Seed", inorg_perha_planted ="10s KGs of Inorganic Fertilizer", org_perha_planted = "100s KGs of Organic Fertilizer", pest_perha_planted = "10s KGs of Pesticide"))+
   theme_vsr()
 
 mlm_plot_paddy
@@ -617,7 +617,7 @@ mlm_plot_paddy
 mod_sold <-lm.cluster(kg_perha_planted ~ intercropped + purchased_seed + inorg_perha_planted+ org_perha_planted + pest_perha_planted +  landscape_no + round + season + erosion_c, data = Sorghum, cluster = "cluster")
 
 mlm_plot_sorghum <- 
-coefplot(mod_sold$lm_res, title = '\n\nSorghum (n= 78)', ylab="", xlab = "Kg per HA Planted", color="#55ad71", predictors = c("intercropped", "erosion_c", "purchased_seed", "inorg_perha_planted", "org_perha_planted","pest_perha_planted"),  sort="alphabetical", newNames=c(erosion_cTRUE="Erosion Control", intercroppedTRUE = "Intercropped", purchased_seedTRUE = "Purchased Seed", inorg_perha_planted ="10s KGs of Inorganic Fertilizer", org_perha_planted = "100s KGs of Organic Fertilizer", pest_perha_planted = "10s KGs of Pesticide"))+
+coefplot(mod_sold$lm_res, title = '\n\nSorghum (n= 78)', ylab="", xlab = "Crop yield (kg/hectare)", color="#55ad71", predictors = c("intercropped", "erosion_c", "purchased_seed", "inorg_perha_planted", "org_perha_planted","pest_perha_planted"),  sort="alphabetical", newNames=c(erosion_cTRUE="Erosion Control", intercroppedTRUE = "Intercropped", purchased_seedTRUE = "Purchased Seed", inorg_perha_planted ="10s KGs of Inorganic Fertilizer", org_perha_planted = "100s KGs of Organic Fertilizer", pest_perha_planted = "10s KGs of Pesticide"))+
   theme_vsr()
 
 mlm_plot_sorghum
@@ -627,7 +627,7 @@ mlm_plot_sorghum
 mod_soyold <-lm.cluster(kg_perha_planted ~ intercropped + purchased_seed + inorg_perha_planted+ org_perha_planted + pest_perha_planted +  landscape_no + round + season + erosion_c, data = Soyabeans, cluster = "cluster")
 
 mlm_plot_soyabeans <- 
-coefplot(mod_soyold$lm_res, title = '\n\nSoyabeans (n= 32)', ylab="", xlab = "Kg per HA Planted", color="#70519b", predictors = c("intercropped", "erosion_c", "purchased_seed", "inorg_perha_planted", "org_perha_planted","pest_perha_planted"),  sort="alphabetical", newNames=c(erosion_cTRUE="Erosion Control", intercroppedTRUE = "Intercropped", purchased_seedTRUE = "Purchased Seed", inorg_perha_planted ="10s KGs of Inorganic Fertilizer", org_perha_planted = "100s KGs of Organic Fertilizer", pest_perha_planted = "10s KGs of Pesticide"))+
+coefplot(mod_soyold$lm_res, title = '\n\nSoyabeans (n= 32)', ylab="", xlab = "Crop yield (kg/hectare)", color="#70519b", predictors = c("intercropped", "erosion_c", "purchased_seed", "inorg_perha_planted", "org_perha_planted","pest_perha_planted"),  sort="alphabetical", newNames=c(erosion_cTRUE="Erosion Control", intercroppedTRUE = "Intercropped", purchased_seedTRUE = "Purchased Seed", inorg_perha_planted ="10s KGs of Inorganic Fertilizer", org_perha_planted = "100s KGs of Organic Fertilizer", pest_perha_planted = "10s KGs of Pesticide"))+
   theme_vsr()
 
 mlm_plot_soyabeans
@@ -636,7 +636,7 @@ mlm_plot_soyabeans
 #MLM PLOT SWEET POTATOES
 mod_spoldc <-lm.cluster(kg_perha_planted ~ intercropped +  erosion_c + purchased_seed + inorg_perha_planted + org_perha_planted  + landscape_no, data = SP, cluster = "cluster")
 
-mlm_plot_sweet_potatoes <- coefplot(mod_spoldc$lm_res, title = '\nSweet Potatoes (n= 87)', ylab="", xlab = "Kg per HA Planted", color = "#3f7a82", predictors = c("intercropped", "erosion_c", "purchased_seed", "inorg_perha_planted", "org_perha_planted"),  sort="alphabetical", newNames=c(erosion_cTRUE="Erosion Control", intercroppedTRUE = "Intercropped", purchased_seedTRUE = "Purchased Seed", inorg_perha_planted ="10s KGs of Inorganic Fertilizer", org_perha_planted = "100s KGs of Organic Fertilizer")) +
+mlm_plot_sweet_potatoes <- coefplot(mod_spoldc$lm_res, title = '\nSweet Potatoes (n= 87)', ylab="", xlab = "Crop yield (kg/hectare)", color = "#3f7a82", predictors = c("intercropped", "erosion_c", "purchased_seed", "inorg_perha_planted", "org_perha_planted"),  sort="alphabetical", newNames=c(erosion_cTRUE="Erosion Control", intercroppedTRUE = "Intercropped", purchased_seedTRUE = "Purchased Seed", inorg_perha_planted ="10s KGs of Inorganic Fertilizer", org_perha_planted = "100s KGs of Organic Fertilizer")) +
   theme_vsr()
 
 mlm_plot_sweet_potatoes
@@ -645,7 +645,7 @@ mlm_plot_sweet_potatoes
 #MLM PLOT WHEAT
 mod_wold <-lm.cluster(kg_perha_planted ~ intercropped + purchased_seed + inorg_perha_planted+ org_perha_planted + pest_perha_planted +  landscape_no + round + season + erosion_c, data = Wheat, cluster = "cluster")
 mlm_plot_wheat <- 
-coefplot(mod_wold$lm_res, title = '\n\nWheat (n= 38)', ylab="", xlab = "Kg per HA Planted", color="#9c8dc3", predictors = c("intercropped", "erosion_c", "purchased_seed", "inorg_perha_planted", "org_perha_planted","pest_perha_planted"),  sort="alphabetical", newNames=c(erosion_cTRUE="Erosion Control", intercroppedTRUE = "Intercropped", purchased_seedTRUE = "Purchased Seed", inorg_perha_planted ="10s KGs of Inorganic Fertilizer", org_perha_planted = "100s KGs of Organic Fertilizer", pest_perha_planted = "10s KGs of Pesticide"))+
+coefplot(mod_wold$lm_res, title = '\n\nWheat (n= 38)', ylab="", xlab = "Crop yield (kg/hectare)", color="#9c8dc3", predictors = c("intercropped", "erosion_c", "purchased_seed", "inorg_perha_planted", "org_perha_planted","pest_perha_planted"),  sort="alphabetical", newNames=c(erosion_cTRUE="Erosion Control", intercroppedTRUE = "Intercropped", purchased_seedTRUE = "Purchased Seed", inorg_perha_planted ="10s KGs of Inorganic Fertilizer", org_perha_planted = "100s KGs of Organic Fertilizer", pest_perha_planted = "10s KGs of Pesticide"))+
   theme_vsr()
 
 mlm_plot_wheat

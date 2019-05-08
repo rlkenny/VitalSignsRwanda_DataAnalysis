@@ -161,7 +161,7 @@ round_2 <- filter(joined_df, round == "2")
 ```{r}
 
 theme_vsr <- function () { 
-    theme_classic(base_size=9, base_family="Helvetica")+
+    theme_classic(base_size=9, base_family="Avenir")+
     theme(plot.title = element_text(face="bold"), legend.title = element_text(face="bold"))
 }
 
