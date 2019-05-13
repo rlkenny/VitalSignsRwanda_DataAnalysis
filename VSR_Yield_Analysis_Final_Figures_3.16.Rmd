@@ -5,7 +5,6 @@ date: "3/13/2019"
 output: html_document
 ---
 
-
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
@@ -150,7 +149,7 @@ df_maincr$crop_name[which(df_maincr$crop_name=="Blood fruit")] <- "Blood Fruit"
 df <- df_maincr
 ```
 
-
+a
 ```{r}
 #trimmming top and bottom 2.5% of yield (kg) observations for every crop in df
 
