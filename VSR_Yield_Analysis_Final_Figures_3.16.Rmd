@@ -15,6 +15,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 #load libraries
 library(tidyverse)
+require(estimatr)
 library(dplyr)
 library(readr)
 library(ggplot2)
@@ -30,6 +31,7 @@ library(RColorBrewer)
 library(coefplot)
 library(wesanderson)
 library(multiwayvcov)
+library(cowplot)
 
 #load data
 fieldcrop <- read_csv(url("https://vitalsigns-website-downloads.s3.amazonaws.com/tables/household_field_season_fieldcrop.csv"))
@@ -276,7 +278,7 @@ n30$cluster <- as.factor(n30$cluster)
 #robust standard errors are clustered on unique plot id (which I've created and named "cluter" (that's just what lm.cluster is doing to acccount for the fact that yield may be partially dependend on unique plot id). Each regression controls for landscape, round and season)
 
 
-require(estimatr)
+
 
 inter_lm <- n30 %>% 
   group_by(crop_name) %>% 
@@ -343,6 +345,7 @@ theme_vsr <- function () {
 
 
 ###Done with linear models KG, simple linear model COEF plots below
+(note we refer to simple linear model, when we really mean cluster linear model with only one explanatory variable)
 
 ```{r}
 
@@ -466,6 +469,7 @@ lm_plot_inter
 
 #### Simple Linear Model: Improved Seeds
 ```{r}
+##Plotting improved seed coeffecients 
 
 seed_coefs <- 
   filter(seed_lm, term =="purchased_seedTRUE")
@@ -490,6 +494,7 @@ lm_plot_seed
 
 #### Simple Linear Model: Erosion Control
 ```{r}
+##Plotting Erosion Control coefficients
 erode_coefs <- 
   filter(erode_lm, term =="erosion_cTRUE")
 erode_coefs$term[which(erode_coefs$term=="erosion_cTRUE")] <- "" 
@@ -552,7 +557,7 @@ Wheat <- filter(df, crop_name == "Wheat" )
 
 
 ```{r}
-##creating data frame for crops with largest sample size for multiple regression models
+##Creating data frame which only includes variables of interest for regression models for crops with greatest sample size
 
 Beans <- select(Beans, "intercropped", "purchased_seed", "erosion_c", "inorg_perha_planted", "org_perha_planted", "pest_perha_planted", "landscape_no", "hh_earnings", "kg_perha_planted", "value_perha_planted", "round", "cluster", "season")
 
@@ -577,6 +582,8 @@ Wheat <- select(Wheat, "intercropped", "purchased_seed", "erosion_c", "inorg_per
 
 
 ```{r}
+###Running clustered regression models (standard errors clustered on variable "cluster", which is a unique plot ID, for crops with the greatest sample size, controlling for landscape round and season), and including all practices in each model and then plotting results in coeffecient plots
+
 
 # df %>% 
 #   group_by(crop_name) %>% 
@@ -662,8 +669,9 @@ mlm_plot_wheat
 
 
 ```{r}
+#stylizing plots
 
-library(cowplot)
+
 mlm_first4 <- 
 ggdraw() +
   draw_plot(mlm_plot_beans, x = 0, y = .5, width = .5, height = .5) +
