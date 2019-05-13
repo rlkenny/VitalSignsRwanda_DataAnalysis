@@ -393,9 +393,9 @@ xlab("Crop yield (kg/hectare)")+
 
 lm_plot_org
 
-ggsave("lm_plot_org.png", plot = lm_plot_org, device = "png", path = "~/Documents/Bren/GP/3Graphs/Poster/",
-  width = 4, height = 3.3, units = c("in"),
-  dpi = 300)
+# ggsave("lm_plot_org.png", plot = lm_plot_org, device = "png", path = "~/Documents/Bren/GP/3Graphs/Poster/",
+#   width = 4, height = 3.3, units = c("in"),
+#   dpi = 300)
 
 ```
 
@@ -416,9 +416,9 @@ xlab("Crop yield (kg/hectare)")+
 
 lm_plot_inorg
 
-ggsave("lm_plot_inorg.png", plot = lm_plot_inorg, device = "png", path = "~/Documents/Bren/GP/3Graphs/Poster/",
-  width = 4, height = 3.3, units = c("in"),
-  dpi = 300)
+# ggsave("lm_plot_inorg.png", plot = lm_plot_inorg, device = "png", path = "~/Documents/Bren/GP/3Graphs/Poster/",
+#   width = 4, height = 3.3, units = c("in"),
+#   dpi = 300)
 
 ```
 
@@ -439,9 +439,9 @@ xlab("Crop yield (kg/hectare)")+
 
 lm_plot_pest
 
-ggsave("lm_plot_pest.png", plot = lm_plot_pest, device = "png", path = "~/Documents/Bren/GP/3Graphs/Poster/",
-  width = 4, height = 3.3, units = c("in"),
-  dpi = 300)
+# ggsave("lm_plot_pest.png", plot = lm_plot_pest, device = "png", path = "~/Documents/Bren/GP/3Graphs/Poster/",
+#   width = 4, height = 3.3, units = c("in"),
+#   dpi = 300)
 
 ```
 
@@ -458,9 +458,9 @@ dwplot(inter_coefs, dodge_size =  .7)+
 
 lm_plot_inter
 
-ggsave("lm_plot_inter.png", plot = lm_plot_inter, device = "png", path = "~/Documents/Bren/GP/3Graphs/Poster/",
-  width = 4, height = 3.3, units = c("in"),
-  dpi = 300)
+# ggsave("lm_plot_inter.png", plot = lm_plot_inter, device = "png", path = "~/Documents/Bren/GP/3Graphs/Poster/",
+#   width = 4, height = 3.3, units = c("in"),
+#   dpi = 300)
 
 ```
 
@@ -483,9 +483,9 @@ ggtitle("Improved Seed Coefficients:\nKGs Per HA Planted")+
 
 lm_plot_seed
 
-ggsave("lm_plot_seed.png", plot = lm_plot_seed, device = "png", path = "~/Documents/Bren/GP/3Graphs/Poster/",
-  width = 4, height = 3.3, units = c("in"),
-  dpi = 300)
+# ggsave("lm_plot_seed.png", plot = lm_plot_seed, device = "png", path = "~/Documents/Bren/GP/3Graphs/Poster/",
+#   width = 4, height = 3.3, units = c("in"),
+#   dpi = 300)
 
 ```
 
@@ -508,9 +508,9 @@ lm_plot_erosion
 #  relabel_predictors(c("erosion_cTRUE"=" "))+
 #  theme(axis.ticks.y = element_blank())+
 
-ggsave("lm_plot_erosion.png", plot = lm_plot_erosion, device = "png", path = "~/Documents/Bren/GP/3Graphs/Poster/",
-  width = 4, height = 3.3, units = c("in"),
-  dpi = 300)
+# ggsave("lm_plot_erosion.png", plot = lm_plot_erosion, device = "png", path = "~/Documents/Bren/GP/3Graphs/Poster/",
+#   width = 4, height = 3.3, units = c("in"),
+#   dpi = 300)
 
 ```
 
@@ -697,10 +697,8 @@ ggdraw() +
 mlm_ALL
 
 
-
-
-ggsave("mlm_ALL.png", plot = mlm_ALL, device = "png", path = "~/Documents/Bren/GP/3Graphs/Poster/",
-  width = 7.5, height = 8.5, units = c("in"),
-  dpi = 700)
+# ggsave("mlm_ALL.png", plot = mlm_ALL, device = "png", path = "~/Documents/Bren/GP/3Graphs/Poster/",
+#   width = 7.5, height = 8.5, units = c("in"),
+#   dpi = 700)
 
 ```
