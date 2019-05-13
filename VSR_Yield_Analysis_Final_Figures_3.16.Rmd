@@ -69,7 +69,7 @@ field_season$ag3a_47 <- as.factor(field_season$ag3a_47)
 field_season$ag3a_07_1[which(field_season$ag3a_07_1=="Irish potatoes")] <- "Irish Potatoes"
 field_season$ag3a_07_1[which(field_season$ag3a_07_1=="Blood fruit")] <- "Blood Fruit"
 
-#fset landscape # as factor in household survey data
+#Set landscape # as factor in household survey data
 hh_fieldcrop$landscape_no <- as.factor(hh_fieldcrop$landscape_no)
 
 #Join fieldcrop and field_season dataframes
@@ -123,6 +123,9 @@ joined_df <- mutate(joined_df, org_peracre = ag3a_40/ag4a_08) %>%
 
 
 ```{r}
+
+##Filter to only retain households in Rwanda, aggregate income categories by household
+
 
 hh_indiv <- filter(hh_indiv, country == "RWA")
 
