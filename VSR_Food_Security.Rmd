@@ -589,9 +589,9 @@ fs_pest_bar <- ggplot(fs_pest_ag, aes(sometimes_pest, fill=ordered(Level)))+
 
 fs_pest_bar
 
-ggsave("fs_pest_bar.png", plot = fs_pest_bar, device = "png", path = "~/Documents/Bren/GP/3Graphs/Results/",
-  width = 4, height = 3, units = c("in"),
-  dpi = 300)
+# ggsave("fs_pest_bar.png", plot = fs_pest_bar, device = "png", path = "~/Documents/Bren/GP/3Graphs/Results/",
+#   width = 4, height = 3, units = c("in"),
+#   dpi = 300)
 
 ```
 
