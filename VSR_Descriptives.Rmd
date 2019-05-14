@@ -16,18 +16,29 @@ knitr::opts_chunk$set(echo = TRUE)
 ##Tables of Contents
 1. Data Wrangling
 2. Descriptives
-  a. Pesticide
-  b. Organic Fertilizer
-  c. Inorganic Fertilizer
-  d. Quantity of Crop Harvest
-  e. Reason for Intercropping
-  f. Soil Quality
-  g. Crop Residue Use
-  h. Food Loss
+**Appendix**
+  a. Crop type grown across landscape 
+  b. Cause of post-harvest food loss
+  c. Reported reason for intercropping by landscape
+  d. Reported soil quality by landscape
+  e. Use of inputs by landscape and round
+        Inorganic fertilzier use
+        Organic fertilizer use
+        Pesticide use
+  f. Crop value by landscape
+
+**Additional exploratory graphs**
+  a. Pesticides
+  b. Organic fertilizer
+  c. Inorganic fertilizer
+  d. Quantity of crop harvest
+  e. Soil quality
+  f. Crop residue use
+  g. Food loss
 
 ---
 
-##Data Wrangling
+##1. Data Wrangling
 
 ```{r}
 
@@ -136,31 +147,14 @@ joined_df <- mutate(joined_df, org_peracre = ag3a_40/ag4a_08) %>%
 round_1 <- filter(joined_df, round == "1")
 round_2 <- filter(joined_df, round == "2")
 
-# Rename landscape levels
-# joined_df_L <- joined_df
-# joined_df_L$landscape_no[which(joined_df_L$landscape_no=="L01")] <- "1"
-# joined_df_L$landscape_no[which(joined_df_L$landscape_no=="L02")] <- "2"
-# joined_df_L$landscape_no[which(joined_df_L$landscape_no=="L03")] <- "3"
-# joined_df_L$landscape_no[which(joined_df_L$landscape_no=="L04")] <- "4"
-# joined_df_L$landscape_no[which(joined_df_L$landscape_no=="L06")] <- "6"
-# joined_df_L$landscape_no[which(joined_df_L$landscape_no=="L07")] <- "7"
-# joined_df_L$landscape_no[which(joined_df_L$landscape_no=="L08")] <- "8"
-# joined_df_L$landscape_no[which(joined_df_L$landscape_no=="L10")] <- "10"
-# joined_df_L$landscape_no[which(joined_df_L$landscape_no=="L11")] <- "11"
-# joined_df_L$landscape_no[which(joined_df_L$landscape_no=="L12")] <- "12"
-
-
-#View(joined_df)
-#levels(joined_df$landscape_no)
-
 ```
 
 ---
 
-###Set style
+###Set graph style
 ```{r}
 
-theme_vsr <- function () { 
+theme_vsr <- function () {
     theme_classic(base_size=9, base_family="Avenir")+
     theme(plot.title = element_text(face="bold"), legend.title = element_text(face="bold"))
 }
@@ -169,8 +163,9 @@ theme_vsr <- function () {
 
 
 ##2. Descriptives
+## Appendix figures
 
-###Crops grown across landscape
+###a. Crop type grown across landscape
 ```{r}
 
 A_crops_grown <- ggplot(filter(joined_df, crop_name != "NA"), aes(x= crop_name, fill=factor(landscape_no)))+
@@ -186,13 +181,13 @@ A_crops_grown <- ggplot(filter(joined_df, crop_name != "NA"), aes(x= crop_name, 
 
 A_crops_grown
 
-ggsave("A_crops_grown.png", plot = A_crops_grown, device = "png", path = "~/Documents/Bren/GP/3Graphs/Descriptives/",
-  width = 6, height = 4.5, units = c("in"),
-  dpi = 300)
+# ggsave("A_crops_grown.png", plot = A_crops_grown, device = "png", path = "~/Documents/Bren/GP/3Graphs/Descriptives/",
+#   width = 6, height = 4.5, units = c("in"),
+#   dpi = 300)
 
 ```
 
-###Cause of Post-Harvest Food Loss
+###Cause of post-harvest food loss
 ```{r}
 
 A_food_loss <- 
@@ -209,31 +204,15 @@ A_food_loss <-
 
 A_food_loss
 
-ggsave("A_food_loss.png", plot = A_food_loss, device = "png", path = "~/Documents/Bren/GP/3Graphs/Descriptives/",
-  width = 3.5, height = 4.5, units = c("in"),
-  dpi = 300)
+# ggsave("A_food_loss.png", plot = A_food_loss, device = "png", path = "~/Documents/Bren/GP/3Graphs/Descriptives/",
+#   width = 3.5, height = 4.5, units = c("in"),
+#   dpi = 300)
 
 ```
 
-###Soil quality by landscape
-```{r}
-#Soil quality by landscape
-A_soil_quality <- ggplot(data = filter(joined_df, ag3a_10 != "NA"), aes(landscape_no, fill=ordered(ag3a_10))) +
-  geom_bar(stat="count", position = "fill")+
-  theme(plot.title = element_text(hjust = 0.5, face="bold"), legend.title=element_text(face="bold"), axis.title=element_text(face="bold"))+
-  xlab("Landscape")+
-  ylab("Soil Quality (as reported by farmers)")+
-  ggtitle("Soil Quality By Landscape")+
-  scale_fill_manual(name="Soil Quality", labels =c("Good", "Average", "Bad"), values = c("#449d8b", "#e8af3c", "#eb4024"))  +
-  theme_vsr()+
-  scale_y_continuous(expand=c(0,0))
 
-ggsave("A_soil_quality.png", plot = A_soil_quality, device = "png", path = "~/Documents/Bren/GP/3Graphs/Descriptives/",
-  width = 4.5, height = 3, units = c("in"),
-  dpi = 300)
-```
 
-###Reason for Intercropping
+###c. Reported reason for intercropping by landscape
 ```{r}
 # Reason for intercropping
 A_reason_inter <- ggplot(data=filter(joined_df, ag4a_05 != "NA"), aes(x=ag4a_05, fill=landscape_no))+
@@ -247,17 +226,35 @@ A_reason_inter <- ggplot(data=filter(joined_df, ag4a_05 != "NA"), aes(x=ag4a_05,
 
 A_reason_inter
 
-ggsave("A_reason_inter.png", plot = A_reason_inter, device = "png", path = "~/Documents/Bren/GP/3Graphs/Descriptives/",
-  width = 6, height = 3.5, units = c("in"),
-  dpi = 300)
+# ggsave("A_reason_inter.png", plot = A_reason_inter, device = "png", path = "~/Documents/Bren/GP/3Graphs/Descriptives/",
+#   width = 6, height = 3.5, units = c("in"),
+#   dpi = 300)
+
+```
+
+
+###d. Reported soil quality by landscape
+```{r}
+#Soil quality by landscape
+A_soil_quality <- ggplot(data = filter(joined_df, ag3a_10 != "NA"), aes(landscape_no, fill=ordered(ag3a_10))) +
+  geom_bar(stat="count", position = "fill")+
+  theme(plot.title = element_text(hjust = 0.5, face="bold"), legend.title=element_text(face="bold"), axis.title=element_text(face="bold"))+
+  xlab("Landscape")+
+  ylab("Soil Quality (as reported by farmers)")+
+  ggtitle("Soil Quality By Landscape")+
+  scale_fill_manual(name="Soil Quality", labels =c("Good", "Average", "Bad"), values = c("#449d8b", "#e8af3c", "#eb4024"))  +
+  theme_vsr()+
+  scale_y_continuous(expand=c(0,0))
+
+# ggsave("A_soil_quality.png", plot = A_soil_quality, device = "png", path = "~/Documents/Bren/GP/3Graphs/Descriptives/",
+#   width = 4.5, height = 3, units = c("in"),
+#   dpi = 300)
 
 ```
 
 
 
-
-
-###Use of inputs by landscape and round
+###e. Use of inputs by landscape and round
 
 ####Inorganic Fertilizer
 ```{r}
@@ -276,9 +273,9 @@ A_crop_inorg_fert <- ggplot(data=joined_df, aes(x=ag3a_07_1, y=(ag3a_47/ag4a_08)
 
 A_crop_inorg_fert
 
-ggsave("A_crop_inorg_fert.png", plot = A_crop_inorg_fert, device = "png", path = "~/Documents/Bren/GP/3Graphs/Descriptives/",
-  width = 6.25, height = 4, units = c("in"),
-  dpi = 300)
+# ggsave("A_crop_inorg_fert.png", plot = A_crop_inorg_fert, device = "png", path = "~/Documents/Bren/GP/3Graphs/Descriptives/",
+#   width = 6.25, height = 4, units = c("in"),
+#   dpi = 300)
 
 
 A_landscape_inorg_fert <- ggplot(data=joined_df, aes(x=landscape_no, y=ag3a_47, fill=round))+
@@ -293,9 +290,9 @@ A_landscape_inorg_fert <- ggplot(data=joined_df, aes(x=landscape_no, y=ag3a_47, 
 
 A_landscape_inorg_fert
 
-ggsave("A_landscape_inorg_fert.png", plot = A_landscape_inorg_fert, device = "png", path = "~/Documents/Bren/GP/3Graphs/Descriptives/",
-  width = 4.5, height = 3.5, units = c("in"),
-  dpi = 300)
+# ggsave("A_landscape_inorg_fert.png", plot = A_landscape_inorg_fert, device = "png", path = "~/Documents/Bren/GP/3Graphs/Descriptives/",
+#   width = 4.5, height = 3.5, units = c("in"),
+#   dpi = 300)
 
 ```
 
@@ -315,9 +312,9 @@ A_crop_org_fert <- ggplot(data=joined_df, aes(x=ag3a_07_1, y=(ag3a_40/ag4a_08), 
 
 A_crop_org_fert
 
-ggsave("A_crop_org_fert.png", plot = A_crop_org_fert, device = "png", path = "~/Documents/Bren/GP/3Graphs/Descriptives/",
-  width = 5.7, height = 4, units = c("in"),
-  dpi = 300)
+# ggsave("A_crop_org_fert.png", plot = A_crop_org_fert, device = "png", path = "~/Documents/Bren/GP/3Graphs/Descriptives/",
+#   width = 5.7, height = 4, units = c("in"),
+#   dpi = 300)
 
 
 A_landscape_org_fert <- ggplot(data=joined_df, aes(x=landscape_no, y=ag3a_40, fill=round))+
@@ -332,9 +329,9 @@ A_landscape_org_fert <- ggplot(data=joined_df, aes(x=landscape_no, y=ag3a_40, fi
 
 A_landscape_org_fert
 
-ggsave("A_landscape_org_fert.png", plot = A_landscape_org_fert, device = "png", path = "~/Documents/Bren/GP/3Graphs/Descriptives/",
-  width = 4.7, height = 3.5, units = c("in"),
-  dpi = 300)
+# ggsave("A_landscape_org_fert.png", plot = A_landscape_org_fert, device = "png", path = "~/Documents/Bren/GP/3Graphs/Descriptives/",
+#   width = 4.7, height = 3.5, units = c("in"),
+#   dpi = 300)
 
 ```
 
@@ -353,16 +350,16 @@ A_crop_pest <- ggplot(data=joined_df, aes(x=ag3a_07_1, y=(ag3a_60_1/ag4a_08), fi
 
 A_crop_pest
 
-ggsave("A_crop_pest.png", plot = A_crop_pest, device = "png", path = "~/Documents/Bren/GP/3Graphs/Descriptives/",
-  width = 5.25, height = 4, units = c("in"),
-  dpi = 300)
+# ggsave("A_crop_pest.png", plot = A_crop_pest, device = "png", path = "~/Documents/Bren/GP/3Graphs/Descriptives/",
+#   width = 5.25, height = 4, units = c("in"),
+#   dpi = 300)
 
 
 A_landscape_pest <- ggplot(data=joined_df, aes(x=landscape_no, y=ag3a_60_1, fill=round))+
   geom_bar(stat="identity",position="stack")+
   xlab("Landscape")+
   ylab("Total amount of pesticides applied (kg)")+
-  ggtitle("Organic Fertilizer Use by Landscape and Round")+
+  ggtitle("Pesticide Use by Landscape and Round")+
   scale_y_continuous(expand=c(0,0))+
   scale_x_discrete(labels=c("1", "2", "3", "4", "6", "7", "8", "10", "11", "12"))+
   theme_vsr()+
@@ -370,35 +367,51 @@ A_landscape_pest <- ggplot(data=joined_df, aes(x=landscape_no, y=ag3a_60_1, fill
 
 A_landscape_pest
 
-ggsave("A_landscape_pest.png", plot = A_landscape_pest, device = "png", path = "~/Documents/Bren/GP/3Graphs/Descriptives/",
-  width = 4.5, height = 3.5, units = c("in"),
-  dpi = 300)
+# ggsave("A_landscape_pest.png", plot = A_landscape_pest, device = "png", path = "~/Documents/Bren/GP/3Graphs/Descriptives/",
+#   width = 4.5, height = 3.5, units = c("in"),
+#   dpi = 300)
 
 ```
 
 
+f. Crop value by landscape
+```{r}
+land_no <- as.character(unique(joined_df$landscape_no))
+crop_count <- list()
 
+for(i in 1:length(land_no)){
+  table_new <- joined_df %>%
+  filter(landscape_no == land_no[i]) %>% 
+  group_by(crop_name) %>%
+  tally()
+  crop_count[[i]] <- table_new 
+}
+crop_count
 
+#count = tally(crop_name), 
 
+land_no <- as.character(unique(joined_df$landscape_no))
+table_list <- list()
+
+for(i in 1:length(land_no)){
+  table_new <- joined_df %>%
+  filter(landscape_no == land_no[i]) %>% 
+  group_by(crop_name) %>%
+  summarize(mean_value_perha = mean(value_perha_planted, na.rm = TRUE))
+  table_list[[i]] <- table_new 
+}
+table_list
+```
 
 
 
 ######################
 
 
+## Additional exploratory graphs
+###a. Pesticides
 
-
-
-
-
-
-
-
-#a. PESTICIDE
-
-Pesticide Use
-
-#Explore pesticide use
+###Explore total pesticide use
 ```{r}
 
 #Pesticide use (ag3a_58) (Yes/No) across everything
@@ -410,7 +423,7 @@ ggplot(data=joined_df, aes(ag3a_58))+
 
 ```
 
-#pesticide use (Yes/No) disaggregated by round
+###Pesticide use (Yes/No) disaggregated by round
 ```{r}
 
 #round 1
@@ -439,7 +452,7 @@ table(round_2$ag3a_58)
 
 ```
 
-#explore types of pesticides used
+###Explore types of pesticides used
 ```{r}
 
 #total use of pesticide (Yes/No) by type 
@@ -462,34 +475,8 @@ ggplot(data=pesticide_sans_na, aes(ag3a_59))+
 #conclusion: predominantly pesticides, little herbicide or fungicide
 ```
 
-#explore the amount of pesticide used in kg
-```{r}
 
-#note some missing data for the amount of pesticide used
-
-#####
-#total amount of pesticide used in kg, by landscape and round
-ggplot(data=joined_df, aes(x=landscape_no, y=pesticide_use_kg, fill=round))+
-  geom_bar(stat="identity",position=position_dodge())+
-  xlab("Landscape")+
-  ylab("Amount of Pesticide Used (Kg)")+
-  ggtitle("Use of Pesticide by Landscape and Round")
-
-#Landscape 1 round 1 is so high due to 1 750kg entry. Might be an outlier, let's remove.
-table(joined_df$pesticide_use_kg)
-pesticide_outlier <- dplyr::filter(joined_df, pesticide_use_kg == "750")
-pesticide_remove_outliers <- dplyr::filter(joined_df, pesticide_use_kg < 750)
-
-#same graph, but with the outlier in landscape 1, round 1 removed
-ggplot(data=pesticide_remove_outliers, aes(x=landscape_no, y=pesticide_use_kg, fill=round))+
-  geom_bar(stat="identity",position=position_dodge())+
-  xlab("Landscape")+
-  ylab("Pesticide Use (Kg)")+
-  ggtitle("Use of Pesticide by Landscape and Round (> 749 Kg Removed)")
-
-```
-
-#explore proportion of amount of pesticide used by type, landscape
+###Explore proportion of amount of pesticide used by type, landscape
 ```{r}
 
 #proportion of different types of pesticide by landscape
@@ -507,32 +494,9 @@ ggplot(data=pesticide_remove_outliers, aes(x=landscape_no, y=pesticide_use_kg, f
   ggtitle("Type of Pesticide by Landscape (Both Rounds, Outlier Removed)")
 ```
 
-#explore total pesticide used (kg) by main crop type
-```{r}
+###b. Organic fertilizer
 
-#pesticide use (kg) by main crop type
-ggplot(data=joined_df, aes(x=ag3a_07_1, y=pesticide_use_kg))+
-  geom_bar(stat="identity")+
-  xlab("Main Crop on Field")+
-  ylab("Amount of Pesticide Used (All Types, Kg)")+
-  ggtitle("Pesticide Use by Main Crop Type (Both Rounds)")+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
-#pesticide use by main crop type, pesticide type
-ggplot(data=joined_df, aes(x=ag3a_07_1, y=pesticide_use_kg, fill=ag3a_59))+
-  geom_bar(stat="identity")+
-  xlab("Main Crop on Field")+
-  ylab("Amount of Pesticide Used (Kg)")+
-  ggtitle("Pesticide Use by Type and Main Crop Type (Both Rounds)")+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
-```
-
-
-#b. ORGANIC FERTILIZER
-
-
-#explore fert use (Yes/No)
+###Explore fert use (Yes/No)
 ```{r}
 ##BOTH ROUNDS#####
 table(joined_df$ag3a_39)
@@ -569,7 +533,7 @@ ggplot(data=round_2, aes(ag3a_39))+
 
 ```
 
-#explore types of org fert (ag3a_39a)
+###Explore types of org fert (ag3a_39a)
 ```{r}
 
 #table of types of organic fertilizer
@@ -585,37 +549,10 @@ ggplot(data=joined_df, aes(ag3a_39a))+
 
 ```
 
-#explore amount of org fert used (kg) 
-```{r}
 
-#total amount of fertilizer used in kg, by landscape and round
-ggplot(data=joined_df, aes(x=landscape_no, y=ag3a_40, fill=round))+
-  geom_bar(stat="identity",position="stack")+
-  xlab("Landscape")+
-  ylab("Organic Fertilizer Use (Kg)")+
-  ggtitle("Organic Fertilizer Use by Landscape and Round")+
-  theme_vsr()
+###c. Inorganic fertilizer
 
-```
-
-#explored amount of org fert used (kg) by crop
-```{r fertilizer_by_main_crop}
-
-#organic fertilizer used by main crop, organic fertilizer type
-ggplot(data=joined_df, aes(x=ag3a_07_1, y=ag3a_40, fill=ag3a_39a))+
-  geom_bar(stat="identity")+
-  xlab("Main Crop on Field")+
-  ylab("Amount of Organic Fertilizer Used (Kg)")+
-  ggtitle("Organic Fertilizer Use by Main Crop Type (Both Rounds)")+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
-```
-
-
-#c. INORGANIC FERTILIZER
-
-
-Explore use of inorganic fertilizer (Yes/No)
+###Explore use of inorganic fertilizer (Yes/No)
 ```{r}
 
 table(joined_df$ag3a_45)
@@ -657,7 +594,7 @@ mean(joined_df$ag3a_47, na.rm = TRUE)
 
 ```
 
-#Explore types of inorganic fertilizer
+###Explore types of inorganic fertilizer
 ```{r}
 
 #table of types of inorganic fertilizer
@@ -676,15 +613,8 @@ ggplot(data=infert_type_df, aes(ag3a_46))+
 
 ```
 
-#Explore amount of inorganic fertilizer used by landscape and round
+###Explore type of inorganic fertilizer used by landscape 
 ```{r}
-
-#total amount of fertilizer used in kg, by landscape and round
-ggplot(data=joined_df, aes(x=landscape_no, y=ag3a_47, fill=round))+
-  geom_bar(stat="identity",position="stack")+
-  xlab("Landscape")+
-  ylab("Inorganic Fertilizer Use (Kg)")+
-  ggtitle("Inorganic Fertilizer Use by Landscape and Round")
 
 #Proportion of type of inorganic fertilizer used by landscape
 ggplot(data=joined_df, aes(x=landscape_no, y=ag3a_47, fill=ag3a_46))+
@@ -695,21 +625,8 @@ ggplot(data=joined_df, aes(x=landscape_no, y=ag3a_47, fill=ag3a_46))+
 
 ```
 
-#Explore inorganic crop use by main crop type, fertilizer type
-```{r}
 
-ggplot(data=joined_df, aes(x=ag3a_07_1, y=ag3a_47, fill=ag3a_46))+
-  geom_bar(stat="identity")+
-  xlab("Main Crop on Field")+
-  ylab("Amount of Inorganic Fertilizer Used (Kg)")+
-  ggtitle("Inorganic Fertilizer Use by Main Crop Type (Both Rounds)")+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
-```
-
-
-#d. Quantity of Crop Harvest
-
+###d. Quantity of crop harvest
 
 ```{r}
 
@@ -781,102 +698,79 @@ ggplot(totalharvest_L01, aes(x= crop_name, y= ag4a_15))+
   geom_bar(stat = "identity")+
   xlab ("Crop")+
   ylab("Total Harvest (kg)")+
-  ggtitle("Quantity of Crop Harvest for Nyungwe")+
+  ggtitle("Quantity of Crop Harvest for Landscape 1")+
   theme(axis.text.x = element_text(angle = 90, hjust = 1), plot.title = element_text(hjust = 0.5, face="bold"), legend.title=element_text(face="bold"), axis.title=element_text(face="bold"))
 
 ggplot(totalharvest_L02, aes(x= crop_name, y= ag4a_15))+
   geom_bar(stat = "identity")+
   xlab ("Crop")+
   ylab("Total Harvest (kg)")+
-  ggtitle("Quantity of Crop Harvest for Volcanoes")+
+  ggtitle("Quantity of Crop Harvest for Landscape 2")+
   theme(axis.text.x = element_text(angle = 90, hjust = 1), plot.title = element_text(hjust = 0.5, face="bold"), legend.title=element_text(face="bold"), axis.title=element_text(face="bold"))
 
 ggplot(totalharvest_L03, aes(x= crop_name, y= ag4a_15))+
   geom_bar(stat = "identity")+
   xlab ("Crop")+
   ylab("Total Harvest (kg)")+
-  ggtitle("Quantity of Crop Harvest for Akagera")+
+  ggtitle("Quantity of Crop Harvest for Landscape 3")+
   theme(axis.text.x = element_text(angle = 90, hjust = 1), plot.title = element_text(hjust = 0.5, face="bold"), legend.title=element_text(face="bold"), axis.title=element_text(face="bold"))
 
 ggplot(totalharvest_L04, aes(x= crop_name, y= ag4a_15))+
   geom_bar(stat = "identity")+
   xlab ("Crop")+
   ylab("Total Harvest (kg)")+
-  ggtitle("Quantity of Crop Harvest for Gishwati")+
+  ggtitle("Quantity of Crop Harvest for Landscape 4")+
   theme(axis.text.x = element_text(angle = 90, hjust = 1), plot.title = element_text(hjust = 0.5, face="bold"), legend.title=element_text(face="bold"), axis.title=element_text(face="bold"))
 
 ggplot(totalharvest_L06, aes(x= crop_name, y= ag4a_15))+
   geom_bar(stat = "identity")+
   xlab ("Crop")+
   ylab("Total Harvest (kg)")+
-  ggtitle("Quantity of Crop Harvest for Muhanga-Kamonyi")+
+  ggtitle("Quantity of Crop Harvest for Landscape 6")+
   theme(axis.text.x = element_text(angle = 90, hjust = 1), plot.title = element_text(hjust = 0.5, face="bold"), legend.title=element_text(face="bold"), axis.title=element_text(face="bold"))
 
 ggplot(totalharvest_L07, aes(x= crop_name, y= ag4a_15))+
   geom_bar(stat = "identity")+
   xlab ("Crop")+
   ylab("Total Harvest (kg)")+
-  ggtitle("Quantity of Crop Harvest for Bugesera")+
+  ggtitle("Quantity of Crop Harvest for Landscape 7")+
   theme(axis.text.x = element_text(angle = 90, hjust = 1), plot.title = element_text(hjust = 0.5, face="bold"), legend.title=element_text(face="bold"), axis.title=element_text(face="bold"))
 
 ggplot(totalharvest_L08, aes(x= crop_name, y= ag4a_15))+
   geom_bar(stat = "identity")+
   xlab ("Crop")+
   ylab("Total Harvest (kg)")+
-  ggtitle("Quantity of Crop Harvest for L08")+
+  ggtitle("Quantity of Crop Harvest for Landscape 8")+
   theme(axis.text.x = element_text(angle = 90, hjust = 1), plot.title = element_text(hjust = 0.5, face="bold"), legend.title=element_text(face="bold"), axis.title=element_text(face="bold"))
 
 ggplot(totalharvest_L10, aes(x= crop_name, y= ag4a_15))+
   geom_bar(stat = "identity")+
   xlab ("Crop")+
   ylab("Total Harvest (kg)")+
-  ggtitle("Quantity of Crop Harvest for L10")+
+  ggtitle("Quantity of Crop Harvest for Landscape 10")+
   theme(axis.text.x = element_text(angle = 90, hjust = 1), plot.title = element_text(hjust = 0.5, face="bold"), legend.title=element_text(face="bold"), axis.title=element_text(face="bold"))
 
 ggplot(totalharvest_L11, aes(x= crop_name, y= ag4a_15))+
   geom_bar(stat = "identity")+
   xlab ("Crop")+
   ylab("Total Harvest (kg)")+
-  ggtitle("Quantity of Crop Harvest for L11")+
+  ggtitle("Quantity of Crop Harvest for Landscape 11")+
   theme(axis.text.x = element_text(angle = 90, hjust = 1), plot.title = element_text(hjust = 0.5, face="bold"), legend.title=element_text(face="bold"), axis.title=element_text(face="bold"))
 
 ggplot(totalharvest_L12, aes(x= crop_name, y= ag4a_15))+
   geom_bar(stat = "identity")+
   xlab ("Crop")+
   ylab("Total Harvest (kg)")+
-  ggtitle("Quantity of Crop Harvest for L12")+
+  ggtitle("Quantity of Crop Harvest for Landscape 12")+
   theme(axis.text.x = element_text(angle = 90, hjust = 1), plot.title = element_text(hjust = 0.5, face="bold"), legend.title=element_text(face="bold"), axis.title=element_text(face="bold"))
 
 
 ```
 
 
-#e. Reason for Intercropping
 
 
-```{r}
-
-library(RColorBrewer)
-
-
-  
-ggplot(data=filter(joined_df, ag4a_05 != "NA"), aes(x=ag4a_05))+
-  geom_bar(stat="count")+
-  xlab("Reason for Intercropping")+
-  ylab("Frequency")+
-  ggtitle("Household Survey of Reported Reasons for Intercropping")+
-  scale_fill_manual(values=c("firebrick1", "darkorange", "deepskyblue3"))+
-  theme_minimal()
-
-plot
-
-#ag4a_05 - What is the reason for this intercropping?
-
-```
-
-
-#f. Soil Quality
-
+###e. Soil quality
 
 ```{r}
 
@@ -904,8 +798,7 @@ ggplot(data = filter(joined_df, ag3a_10 != "NA"), aes(landscape_no, fill=ordered
 ```
 
 
-#g. Crop residue use
-
+###f. Crop residue use
 
 ```{r}
 #Crop residue use in Rwanda
@@ -929,8 +822,7 @@ ggplot(filter(hh_fieldcrop, country == 'RWA', ag5a_24 != "NA"), aes(x= ag5a_24, 
 ```
 
 
-#h. Food Loss
-
+###g. Food loss
 
 ```{r}
 

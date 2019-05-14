@@ -17,7 +17,11 @@ knitr::opts_chunk$set(echo = TRUE)
   # *Inorganic fertilizer  - ag3a_45 (1 yes/2 no), ag3a_47 (kg)
   # *Organic fertilizer  - ag3a_39 (1 yes/2 no), ag3a_40 (kg)
   # *Pesticide/herbicide - ag3a_58 (1 yes/2 no), ag3a_59 {1: 'Pesticide', 2: 'Herbicide', 3:  'Fungicide'}, ag3a_60_1 (kg), pesticide_kg, herbicide_kg, fungicide_kg
+  
+  
+##Data
 
+###Load libraries & data
 ```{r}
 
 #load libraries
@@ -42,7 +46,7 @@ hh_indiv <- read_csv(url("https://vitalsigns-website-downloads.s3.amazonaws.com/
 #View(household_field_season_fieldcrop)
 ```
 
-
+###Data wrangling
 ```{r}
 #Filter fieldcrop, treat factors as factors and numeric as numeric
 fieldcrop <- dplyr::filter(fieldcrop, country == 'RWA', ag4a_15 != "na")
@@ -619,32 +623,6 @@ for(i in 1:length(cr)){
 #dens_crop_yield_5
 
 
-
-
-```
-
-####Commonly Used Indicators
-*Intercrop - ag4a_04 (1 yes/2 no)
-*Erosion control - ag3a_14 (1 yes/2 no) ag3a_15_1, ag3a_15_2, (type, primary, secondary)
-*Area harvested - ag4a_08
-*Inorganic fertilizer  - ag3a_45 (1 yes/2 no), ag3a_47 (kg)
-*Organic fertilizer  - ag3a_39 (1 yes/2 no), ag3a_40 (kg)
-*Pesticide/herbicide - ag3a_58 (1 yes/2 no), ag3a_59 {1: 'Pesticide', 2: 'Herbicide', 3: 'Fungicide'}, ag3a_60_1 (kg), pesticide_kg, herbicide_kg, fungicide_kg
-
-
-####Yield Gap ~ Erosion Control
-```{r}
-
-#Yield Gap ~ Erosion Control
-ggplot(data = filter(jdf_n30_2.5, ag3a_14 != "NA"), aes(yield_gap, fill=ordered(ag3a_14, levels=c("Yes", "No")))) +
-  geom_bar(stat="count", position = "fill")+
-  theme(plot.title = element_text(hjust = 0.5, face="bold"), legend.title=element_text(face="bold"), axis.title=element_text(face="bold"))+
-  xlab("Lower/ Higher Yield")+
-  ylab("Erosion Control")+
-  ggtitle("Erosion Control as a Function of Yield Gap")+
-  scale_fill_discrete(name="Erosion Control", labels =c("Yes", "No"))
-
-```
 
 
 ```

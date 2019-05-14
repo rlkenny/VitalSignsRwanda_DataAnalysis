@@ -11,8 +11,9 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 
-##Data Wrangling
+##Data 
 
+###Load libraries & data
 ```{r}
 
 #load libraries
@@ -46,6 +47,7 @@ exchange_rates <- read_csv("exchange_rates.csv") #exchange rates file shared by 
 ```
 
 
+###Data wranling
 ```{r}
 #Filter fieldcrop, treat factors as factors and numeric as numeric
 fieldcrop <- dplyr::filter(fieldcrop, country == 'RWA', ag4a_15 != "na")
@@ -154,20 +156,21 @@ joined_df <- mutate(joined_df, org_peracre = ag3a_40/ag4a_08) %>%
 # hh_i031
 # How many meals, including breakfast are taken per day in your household? (Adults: over 5 Years Old)
 
-# hh_e65_1- Net household income
+# hh_e65_1
+# Net household income
 
 # hh_i08
 # In the last 12 months, have you been faced with a situation when you did not have enough food to feed the household?
 
-
-# 2  Rely on less preferred foods? 
-# 2  Limit the variety of foods eaten? 
-# 5  Limit portion size at meal-times? 
-# 5  Reduce number of meals eaten in a day? 
-# 7  Restrict consumption by adults for small children to eat? 
-# 7  Borrow food, or rely on help from a friend or relative? 
-# 10  Have no food of any kind in your house-hold? 
-# 10  Go a whole day and night without eating anything?
+# In the past 7 days, how many days have you or someone in your household had to:
+# hh_i02_1  Rely on less preferred foods? 
+# hh_i02_2  Limit the variety of foods eaten? 
+# hh_i02_3  Limit portion size at meal-times? 
+# hh_i02_4  Reduce number of meals eaten in a day? 
+# hh_i02_5  Restrict consumption by adults for small children to eat? 
+# hh_i02_6  Borrow food, or rely on help from a friend or relative? 
+# hh_i02_7  Have no food of any kind in your house-hold? 
+# hh_i02_8  Go a whole day and night without eating anything?
 
 fs$months_insecurity <- rowSums(fs[ , c(paste0('hh_i09a_', seq(1,12)), paste0('hh_i09b_', seq(1,12)))], na.rm=T)
 
@@ -209,11 +212,7 @@ food <- food %>%
 #Combine and aggregate
 out <- Reduce(function(x, y){merge(x, y, all=T)}, list(fs, nfs, food))
 out$Food_As_Percent_Total_Spending <- (out$Food.Spending/(out$Food.Spending + out$Nonfood.Spending))*100
-
-```
-
-
-```{r}
+ 
 
 colnames(exchange_rates)[colnames(exchange_rates)=="End Date"] <- "date"
 
@@ -238,62 +237,14 @@ out_ls <- out %>% group_by(country, landscape_no) %>%
             Mean_Food_Spending = mean(Food.Spending, na.rm=T),
             Food_As_Percent_Total_Spending = mean(Food_As_Percent_Total_Spending, na.rm=T))
 
-```
-
-```{r}
-
-#########################################
-#Write Pathway
-#########################################
-
-
-#write_csv(out, "/Users/austindavidrichards/Desktop/foodsecurity_hh.csv")
-#write_csv(out_ls, "/Users/austindavidrichards/Desktop/foodsecurity_ls.csv")
-
-#writeS3(out, 'FoodSecurity_HH.csv')
-#writeS3(out_ls, 'FoodSecurity_Landscape.csv')
-
-```
-
-
-
-```{r}
 #create data frame filtered to only retain households from Rwanda
-
 out_rwanda <- filter (out, country == "RWA")
-warnings()
-
 out_ls_rwanda <- filter(out_ls, country == "RWA")
 
 ```
 
 
-```{r}
-#summary(out_rwanda$)
-```
-
-
-```{r}
-#write_csv(out_rwanda, "/Users/austindavidrichards/Desktop/foodsecurity_hh.csv")
-#write_csv(out_ls_rwanda #"/Users/austindavidrichards/Desktop/foodsecurity_ls.csv")
-```
-
-
-```{r}
-#Just confirming this whole process resulted in more data points (more households) than the old csv 
-
-#old <- read_csv(url("https://vs-cdb-indicators.s3.amazonaws.com/FoodSecurity_HH.csv"))
-
-
-#old <- filter(old, country == "RWA")
-
-#old$landscape_no <- as.factor(old$landscape_no)
-
-#levels(old$landscape_no)
-
-```
-
-Ag practices indicators for reference:
+Agricultural practice indicators for reference:
 
 #### General
 **ag4a_01** Was crop planted in entire area of FIELD?
@@ -318,9 +269,9 @@ Ag practices indicators for reference:
 **ag4a_23** What type of seed did you purchase ?
 
 
-#### Household food security data wrangling
+### Household food security data wrangling
 ```{r}
-##Creating data frames for variables of interest, and then for each practice, giving a binary assingment for whether households ever used each practice
+##Creating dataframes for variables of interest, and then for each practice, giving a binary assingment for whether households ever used each practice
 
 
 hh_joined_df <-merge(joined_df, out_rwanda, all.x=T, all.y=F) %>% 
@@ -374,7 +325,7 @@ hh_joined_ec_ag <- aggregate(hfias ~ hh_refno + ec +landscape_no, FUN = mean, da
 ```
 
 
-
+###Linear regression models
 ```{r}
 
 #linear regression models, foods security access score by wheter or not a practice was ever employed by a given household in anyround, controlling for VS landscape
@@ -402,36 +353,10 @@ summary(hfias_ec_lm)
 ```
 
 
-
+###Delineate food security levels
 ```{r}
 
-#inter <- filter(hh_joined_df_ag, sometimes_ic == TRUE)
-#dont <- filter(hh_joined_df_ag, sometimes_ic == FALSE)
-  
-
-#mean(inter$hfias)
-
-#mean(dont$hfias)
-
-
-#median(inter$hfias)
-#median(dont$hfias)
-```
-
-
-
-
-```{r}
-#hist(inter$hfias)
-#hist(dont$hfias)
-```
-
-
-
-#Data wrangling & exploration
-```{r}
-
-#old overlapping density plot that we decided to replace
+#overlapping density plot
 ggplot(hh_joined_ic_ag)+
   geom_density(aes(x=hfias, fill =sometimes_ic, alpha = .4))
 
@@ -458,7 +383,7 @@ theme_vsr <- function () {
 }
 ```
 
-
+###Final graphs
 ```{r}
 #Food security by landscape
 FS_landscape <- ggplot(fs_df, aes(x=landscape_no, fill=rev(ordered(Level))))+
@@ -473,9 +398,9 @@ FS_landscape <- ggplot(fs_df, aes(x=landscape_no, fill=rev(ordered(Level))))+
 
 FS_landscape
 
-ggsave("FS_landscape.png", plot = FS_landscape, device = "png", path = "~/Documents/Bren/GP/3Graphs/Results/",
-  width = 5, height = 3, units = c("in"),
-  dpi = 300)
+# ggsave("FS_landscape.png", plot = FS_landscape, device = "png", path = "~/Documents/Bren/GP/3Graphs/Results/",
+#   width = 5, height = 3, units = c("in"),
+#   dpi = 300)
 
 
 col_vector=c("#a6cd5b", "#d4cae1", "#eb8932", "#df417e", "#f4c28f", "#436caa", "#fffca5", "#72bad3", "#b3602a", "#666666", "#539d3e", "#b9d7e4",    "#efa09c", "#9f7731", "#9ce5d5", "#eb4024", "#e8af3c", "#999999", "#a66f5b", "#644195", "#f56e18", "#85bcc1", "#752559", "#e7fbc9", "#693f26", "#2c6b96", "#ff8f7b", "#a68422", "#9c8dc3", "#85c9c8")
@@ -489,48 +414,14 @@ FS_level_crops <- ggplot(fs_df, aes(x=Level, fill=ordered(crop_name)))+
 
 FS_level_crops
 
-ggsave("FS_level_crops.png", plot = FS_level_crops, device = "png", path = "~/Documents/Bren/GP/3Graphs/Results/", width = 6, height = 4.3,
-  dpi = 300)
+# ggsave("FS_level_crops.png", plot = FS_level_crops, device = "png", path = "~/Documents/Bren/GP/3Graphs/Results/", width = 6, height = 4.3,
+#   dpi = 300)
 
-
-# filter(fs_df, Level ==2) %>% 
-#   group_by(crop_name) %>%
-#   tally()
-
-#Level 1 (severely insecure) grows 9 types of crops
-#Level 2 (moderately insecure) grows 21 types of crops
-#Level 3 (midly insecure) grows 26 types of crops
-#Level 4 (food secure) grows 26 types of crops
-
-# filter(fs_df) %>% 
-#   group_by(Level) %>%
-#   tally()
-# 
-# filter(fs_df_ag) %>% 
-#   group_by(Level) %>%
-#   tally()
 
 ```
 
-
-
-
+###Food security ~ Intercropping
 ```{r}
-#design my own theme
-                                              
-theme_VSR <- function () { 
-    theme_classic(base_size=10, base_family="Avenir")+
-    theme(plot.title = element_text(hjust = 0.5, face="bold"), legend.title = element_text(face="bold"))
-}
-
-```
-
-####Food security ~ Intercropping
-```{r}
-#creating figures
-
-
-#View(fs_df)
 
 fs_inter_bar <- ggplot(fs_ic_ag, aes(sometimes_ic, fill=ordered(Level)))+
   geom_bar(stat="count", position = "fill")+
@@ -574,7 +465,7 @@ fs_inorg_bar
 ```
 
 
-####Food security ~ Pesticides
+###Food security ~ Pesticides
 ```{r}
 #creating figures
 

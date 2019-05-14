@@ -12,7 +12,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ##Data
 
-###Load data
+###Load libraries & data
 ```{r}
 
 #load libraries
@@ -321,11 +321,8 @@ theme_vsr <- function () {
 
 ```
 
-**If distinct colors are needed**
-+scale_fill_manual(values = c("#e03c21", "#de6e5b", "eb8932", "#dab03a", "#e6cd4f", "#b4ce8f", "90c3ab", "55ad71", "#5498af", "#85b6c4", "#5498af") 
 
-
-###Done with linear models KG, simple linear model COEF plots below
+###Simple linear model coefficient plots
 (note we refer to simple linear model, when we really mean cluster linear model with only one explanatory variable)
 
 ```{r}
@@ -340,20 +337,14 @@ inter_coefs$model <- inter_coefs$crop_name
 inter_coefs$crop_name <- ordered(inter_coefs$crop_name, levels = c("Soyabeans", "Sorghum", "Maize", "Irish Potatoes", "Cassava", "Beans", "Banana Beer"))
 
 str(inter_coefs$crop_name)
-#ic_coef <- 
 
-# ordered_crop <- c("Banana Beer", "Beans", "Cassava", "Irish Potatoes", "Maize", "Sorghum", "Soyabeans")
-# inter_coefs <- inter_coefs %>% 
-#     mutate(crop_name =  factor(crop_name, levels = ordered_crop)) %>%
-#     group_by(model) %>% arrange(crop_name) 
-#   
 ```
 
 
 
-#### Simple Linear Model: Organic fertilizer
+### Simple linear model: Organic fertilizer
 ```{r}
-##Plotting Organic Fertilizer coefficients
+##Plotting organic fertilizer coefficients
 
 ogfert_coefs <- filter(ogfert_lm, term =="org_perha_planted")
 ogfert_coefs$term[which(ogfert_coefs$term=="org_perha_planted")] <- ""
@@ -375,10 +366,10 @@ lm_plot_org
 ```
 
 
-#### Simple Linear Model: Inorganic fertilizer
+### Simple linear model: Inorganic fertilizer
 ```{r}
 
-##Plotting Inorganic Fertilizer coefficients
+##Plotting inorganic fertilizer coefficients
 
 inogfert_coefs <- filter(inogfert_lm, term =="inorg_perha_planted")
 inogfert_coefs$term[which(inogfert_coefs$term=="inorg_perha_planted")] <- "" 
@@ -401,7 +392,7 @@ lm_plot_inorg
 ```
 
 
-#### Simple Linear Model: Pesticides
+### Simple linear model: Pesticides
 ```{r}
 
 ##Plotting Pesticide ccoefficients
@@ -427,7 +418,7 @@ lm_plot_pest
 ```
 
 
-#### Simple Linear Model: Intercropping
+### Simple linear model: Intercropping
 ```{r}
 ##Plotting intercropping coefficients
 
@@ -448,7 +439,7 @@ lm_plot_inter
 ```
 
 
-#### Simple Linear Model: Improved Seeds
+### Simple linear model: Improved Seeds
 ```{r}
 ##Plotting improved seed coeffecients 
 
@@ -473,7 +464,7 @@ lm_plot_seed
 
 ```
 
-#### Simple Linear Model: Erosion Control
+### Simple linear model: Erosion Control
 ```{r}
 ##Plotting Erosion Control coefficients
 erode_coefs <- 
@@ -500,9 +491,7 @@ lm_plot_erosion
 ```
 
 
-####Now Plotting Multiple Regression Coeficients
-
-
+###Multiple regression coeficients
 ```{r}
 #giving columns easier names 
 colnames(df)[colnames(df)=="ag4a_04"] <- "intercropped"
@@ -555,8 +544,6 @@ Soyabeans <- select(Soyabeans, "intercropped", "purchased_seed", "erosion_c", "i
 SP <- select(SP, "intercropped", "purchased_seed", "erosion_c", "inorg_perha_planted", "org_perha_planted","pest_perha_planted", "landscape_no", "hh_earnings", "kg_perha_planted", "value_perha_planted", "round","cluster", "season")
 
 Wheat <- select(Wheat, "intercropped", "purchased_seed", "erosion_c", "inorg_perha_planted", "org_perha_planted", "pest_perha_planted","landscape_no", "hh_earnings", "kg_perha_planted", "value_perha_planted", "round","cluster", "season")
-
-
 
 ```
 
