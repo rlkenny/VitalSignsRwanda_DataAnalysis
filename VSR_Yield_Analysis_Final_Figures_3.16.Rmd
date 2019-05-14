@@ -5,7 +5,6 @@ date: "3/13/2019"
 output: html_document
 ---
 
-
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
@@ -16,6 +15,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 #load libraries
 library(tidyverse)
+require(estimatr)
 library(dplyr)
 library(readr)
 library(ggplot2)
@@ -24,13 +24,14 @@ library(purrr)
 library(dotwhisker)
 library(estimatr)
 library(readr)
-library(multiwayvcov)
 library(mice)
 library(miceadds)
 library(Amelia)
 library(RColorBrewer)
 library(coefplot)
 library(wesanderson)
+library(multiwayvcov)
+library(cowplot)
 
 #load data
 fieldcrop <- read_csv(url("https://vitalsigns-website-downloads.s3.amazonaws.com/tables/household_field_season_fieldcrop.csv"))
@@ -140,7 +141,6 @@ joined_df <- right_join(hh_nonag_income, joined_df, by = "hh_refno")
 
 ```{r}
 #make cluster variable for unique field id
-
 joined_df <- mutate(joined_df, cluster = paste(hh_refno, field_no, sep='-'))
 
 #now df is filtered to only include 'main crops' from a field
@@ -155,7 +155,6 @@ df <- df_maincr
 #trimmming top and bottom 2.5% of yield (kg) observations for every crop in df
 
 cr <- unique(df$crop_name)
-
 df <- df[!is.na(df$ag4a_04),] #Removes NA value for intercropping (this is removing just one single obs)
 
 #create exclude variable
@@ -226,16 +225,6 @@ colnames(n30)[colnames(n30)=="ag4a_19"] <- "purchased_seed"
 ```
 
 
-```{r}
-
-### Don't include this figure, just looking at missingness
-
-library(naniar)
-#k <- miss_var_summary(n30)
-
-gg_miss_var(n30)
-```
-
 
 
 ```{r}
@@ -289,7 +278,7 @@ n30$cluster <- as.factor(n30$cluster)
 #robust standard errors are clustered on unique plot id (which I've created and named "cluter" (that's just what lm.cluster is doing to acccount for the fact that yield may be partially dependend on unique plot id). Each regression controls for landscape, round and season)
 
 
-require(estimatr)
+
 
 inter_lm <- n30 %>% 
   group_by(crop_name) %>% 
@@ -340,8 +329,9 @@ erode_lm <- n30 %>%
 ```
 
 
-###Creating a custom theme
+
 ```{r}
+###Creating a custom theme
 
 theme_vsr <- function () { 
     theme_classic(base_size=9, base_family="Avenir")+
@@ -355,13 +345,15 @@ theme_vsr <- function () {
 
 
 ###Done with linear models KG, simple linear model COEF plots below
+(note we refer to simple linear model, when we really mean cluster linear model with only one explanatory variable)
 
 ```{r}
 
+#Creating intercropping dataframe
 
 inter_coefs <- filter(inter_lm, term =="intercroppedTRUE")
 inter_coefs$term
-inter_coefs$term[which(inter_coefs$term=="intercroppedTRUE")] <- "" #this annoying line of code gets rid of x axis lable on plot
+inter_coefs$term[which(inter_coefs$term=="intercroppedTRUE")] <- "" #this gets rid of x axis lable on plot
 inter_coefs$model <- inter_coefs$crop_name
 
 inter_coefs$crop_name <- ordered(inter_coefs$crop_name, levels = c("Soyabeans", "Sorghum", "Maize", "Irish Potatoes", "Cassava", "Beans", "Banana Beer"))
@@ -380,6 +372,8 @@ str(inter_coefs$crop_name)
 
 #### Simple Linear Model: Organic fertilizer
 ```{r}
+##Plotting Organic Fertilizer coefficients
+
 ogfert_coefs <- filter(ogfert_lm, term =="org_perha_planted")
 ogfert_coefs$term[which(ogfert_coefs$term=="org_perha_planted")] <- ""
 ogfert_coefs$model <- ogfert_coefs$crop_name
@@ -393,15 +387,18 @@ xlab("Crop yield (kg/hectare)")+
 
 lm_plot_org
 
-ggsave("lm_plot_org.png", plot = lm_plot_org, device = "png", path = "~/Documents/Bren/GP/3Graphs/Poster/",
-  width = 4, height = 3.3, units = c("in"),
-  dpi = 300)
+# ggsave("lm_plot_org.png", plot = lm_plot_org, device = "png", path = "~/Documents/Bren/GP/3Graphs/Poster/",
+#   width = 4, height = 3.3, units = c("in"),
+#   dpi = 300)
 
 ```
 
 
 #### Simple Linear Model: Inorganic fertilizer
 ```{r}
+
+##Plotting Inorganic Fertilizer coefficients
+
 inogfert_coefs <- filter(inogfert_lm, term =="inorg_perha_planted")
 inogfert_coefs$term[which(inogfert_coefs$term=="inorg_perha_planted")] <- "" 
 inogfert_coefs$model <- inogfert_coefs$crop_name
@@ -416,15 +413,18 @@ xlab("Crop yield (kg/hectare)")+
 
 lm_plot_inorg
 
-ggsave("lm_plot_inorg.png", plot = lm_plot_inorg, device = "png", path = "~/Documents/Bren/GP/3Graphs/Poster/",
-  width = 4, height = 3.3, units = c("in"),
-  dpi = 300)
+# ggsave("lm_plot_inorg.png", plot = lm_plot_inorg, device = "png", path = "~/Documents/Bren/GP/3Graphs/Poster/",
+#   width = 4, height = 3.3, units = c("in"),
+#   dpi = 300)
 
 ```
 
 
 #### Simple Linear Model: Pesticides
 ```{r}
+
+##Plotting Pesticide ccoefficients
+
 pest_coefs <- filter(pest_lm, term =="pest_perha_planted")
 pest_coefs$term[which(pest_coefs$term=="pest_perha_planted")] <- "" 
 pest_coefs$model <- pest_coefs$crop_name
@@ -439,15 +439,17 @@ xlab("Crop yield (kg/hectare)")+
 
 lm_plot_pest
 
-ggsave("lm_plot_pest.png", plot = lm_plot_pest, device = "png", path = "~/Documents/Bren/GP/3Graphs/Poster/",
-  width = 4, height = 3.3, units = c("in"),
-  dpi = 300)
+# ggsave("lm_plot_pest.png", plot = lm_plot_pest, device = "png", path = "~/Documents/Bren/GP/3Graphs/Poster/",
+#   width = 4, height = 3.3, units = c("in"),
+#   dpi = 300)
 
 ```
 
 
 #### Simple Linear Model: Intercropping
 ```{r}
+##Plotting intercropping coefficients
+
 lm_plot_inter <- 
 dwplot(inter_coefs, dodge_size =  .7)+
   geom_vline(xintercept = 0, linetype = 'dashed', colour = "darkgrey"  )+
@@ -458,15 +460,16 @@ dwplot(inter_coefs, dodge_size =  .7)+
 
 lm_plot_inter
 
-ggsave("lm_plot_inter.png", plot = lm_plot_inter, device = "png", path = "~/Documents/Bren/GP/3Graphs/Poster/",
-  width = 4, height = 3.3, units = c("in"),
-  dpi = 300)
+# ggsave("lm_plot_inter.png", plot = lm_plot_inter, device = "png", path = "~/Documents/Bren/GP/3Graphs/Poster/",
+#   width = 4, height = 3.3, units = c("in"),
+#   dpi = 300)
 
 ```
 
 
 #### Simple Linear Model: Improved Seeds
 ```{r}
+##Plotting improved seed coeffecients 
 
 seed_coefs <- 
   filter(seed_lm, term =="purchased_seedTRUE")
@@ -483,14 +486,15 @@ ggtitle("Improved Seed Coefficients:\nKGs Per HA Planted")+
 
 lm_plot_seed
 
-ggsave("lm_plot_seed.png", plot = lm_plot_seed, device = "png", path = "~/Documents/Bren/GP/3Graphs/Poster/",
-  width = 4, height = 3.3, units = c("in"),
-  dpi = 300)
+# ggsave("lm_plot_seed.png", plot = lm_plot_seed, device = "png", path = "~/Documents/Bren/GP/3Graphs/Poster/",
+#   width = 4, height = 3.3, units = c("in"),
+#   dpi = 300)
 
 ```
 
 #### Simple Linear Model: Erosion Control
 ```{r}
+##Plotting Erosion Control coefficients
 erode_coefs <- 
   filter(erode_lm, term =="erosion_cTRUE")
 erode_coefs$term[which(erode_coefs$term=="erosion_cTRUE")] <- "" 
@@ -508,17 +512,18 @@ lm_plot_erosion
 #  relabel_predictors(c("erosion_cTRUE"=" "))+
 #  theme(axis.ticks.y = element_blank())+
 
-ggsave("lm_plot_erosion.png", plot = lm_plot_erosion, device = "png", path = "~/Documents/Bren/GP/3Graphs/Poster/",
-  width = 4, height = 3.3, units = c("in"),
-  dpi = 300)
+# ggsave("lm_plot_erosion.png", plot = lm_plot_erosion, device = "png", path = "~/Documents/Bren/GP/3Graphs/Poster/",
+#   width = 4, height = 3.3, units = c("in"),
+#   dpi = 300)
 
 ```
 
 
-####Now Multiple Regression Coef Plots
+####Now Plotting Multiple Regression Coeficients
 
 
 ```{r}
+#giving columns easier names 
 colnames(df)[colnames(df)=="ag4a_04"] <- "intercropped"
 colnames(df)[colnames(df)=="ag3a_14"] <- "erosion_c"
 colnames(df)[colnames(df)=="ag4a_19"] <- "purchased_seed"
@@ -528,6 +533,8 @@ colnames(df)[colnames(df)=="hh_e65_1"] <- "hh_earnings"
 
 
 ```{r}
+
+##Creating data frame for crops with greatest sample size
 
 Beans <- filter(df, crop_name == "Beans" )
 
@@ -550,6 +557,8 @@ Wheat <- filter(df, crop_name == "Wheat" )
 
 
 ```{r}
+##Creating data frame which only includes variables of interest for regression models for crops with greatest sample size
+
 Beans <- select(Beans, "intercropped", "purchased_seed", "erosion_c", "inorg_perha_planted", "org_perha_planted", "pest_perha_planted", "landscape_no", "hh_earnings", "kg_perha_planted", "value_perha_planted", "round", "cluster", "season")
 
 Potatoes <- select(Potatoes, "intercropped", "purchased_seed", "erosion_c", "inorg_perha_planted", "org_perha_planted", "pest_perha_planted","landscape_no", "hh_earnings", "kg_perha_planted", "value_perha_planted", "round","cluster", "season")
@@ -573,6 +582,8 @@ Wheat <- select(Wheat, "intercropped", "purchased_seed", "erosion_c", "inorg_per
 
 
 ```{r}
+###Running clustered regression models (standard errors clustered on variable "cluster", which is a unique plot ID, for crops with the greatest sample size, controlling for landscape round and season), and including all practices in each model and then plotting results in coeffecient plots
+
 
 # df %>% 
 #   group_by(crop_name) %>% 
@@ -658,8 +669,9 @@ mlm_plot_wheat
 
 
 ```{r}
+#stylizing plots
 
-library(cowplot)
+
 mlm_first4 <- 
 ggdraw() +
   draw_plot(mlm_plot_beans, x = 0, y = .5, width = .5, height = .5) +
@@ -697,10 +709,8 @@ ggdraw() +
 mlm_ALL
 
 
-
-
-ggsave("mlm_ALL.png", plot = mlm_ALL, device = "png", path = "~/Documents/Bren/GP/3Graphs/Poster/",
-  width = 7.5, height = 8.5, units = c("in"),
-  dpi = 700)
+# ggsave("mlm_ALL.png", plot = mlm_ALL, device = "png", path = "~/Documents/Bren/GP/3Graphs/Poster/",
+#   width = 7.5, height = 8.5, units = c("in"),
+#   dpi = 700)
 
 ```

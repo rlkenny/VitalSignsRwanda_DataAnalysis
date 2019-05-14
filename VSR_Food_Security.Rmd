@@ -1,5 +1,5 @@
 ---
-title: "Untitled"
+title: "Food Security"
 author: "Austin Richards"
 date: "1/25/2019"
 output: html_document
@@ -9,6 +9,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 
 ```
+
 
 ##Data Wrangling
 
@@ -29,10 +30,8 @@ library(readr)
 library(multiwayvcov)
 library(mice)
 library(miceadds)
-library(Amelia)
 library(RColorBrewer)
 library(coefplot)
-devtools::install_github("karthik/wesanderson")
 library(wesanderson)
 
 
@@ -42,7 +41,7 @@ hh_fieldcrop <- read_csv(url("https://vitalsigns-website-downloads.s3.amazonaws.
 field_season <- read_csv(url("https://vitalsigns-website-downloads.s3.amazonaws.com/tables/household_field_season.csv"))
 hh_indiv <- read_csv(url("https://vitalsigns-website-downloads.s3.amazonaws.com/tables/household_individual.csv"))
 fs <- read_csv(url("https://vitalsigns-website-downloads.s3.amazonaws.com/tables/household.csv"))
-exchange_rates <- read_csv("exchange_rates.csv")
+exchange_rates <- read_csv("exchange_rates.csv") #exchange rates file shared by CI
 
 ```
 
@@ -149,6 +148,9 @@ joined_df <- mutate(joined_df, org_peracre = ag3a_40/ag4a_08) %>%
 
 
 ```{r}
+
+##Refrence index calculation below:
+
 # hh_i031
 # How many meals, including breakfast are taken per day in your household? (Adults: over 5 Years Old)
 
@@ -184,7 +186,6 @@ fs <- fs %>%
          hh_interview_date)
 
 ##Nonfood spending
-##Do we need Sec L?
 
 nfs <- read_csv(url("https://vitalsigns-website-downloads.s3.amazonaws.com/tables/household_expenditure.csv"))
 
@@ -242,7 +243,7 @@ out_ls <- out %>% group_by(country, landscape_no) %>%
 ```{r}
 
 #########################################
-#Write
+#Write Pathway
 #########################################
 
 
@@ -257,6 +258,7 @@ out_ls <- out %>% group_by(country, landscape_no) %>%
 
 
 ```{r}
+#create data frame filtered to only retain households from Rwanda
 
 out_rwanda <- filter (out, country == "RWA")
 warnings()
@@ -278,7 +280,7 @@ out_ls_rwanda <- filter(out_ls, country == "RWA")
 
 
 ```{r}
-#Just confirmign this whole process resulted in more data points (more households) than the old csv 
+#Just confirming this whole process resulted in more data points (more households) than the old csv 
 
 #old <- read_csv(url("https://vs-cdb-indicators.s3.amazonaws.com/FoodSecurity_HH.csv"))
 
@@ -290,6 +292,8 @@ out_ls_rwanda <- filter(out_ls, country == "RWA")
 #levels(old$landscape_no)
 
 ```
+
+Ag practices indicators for reference:
 
 #### General
 **ag4a_01** Was crop planted in entire area of FIELD?
@@ -316,6 +320,8 @@ out_ls_rwanda <- filter(out_ls, country == "RWA")
 
 #### Household food security data wrangling
 ```{r}
+##Creating data frames for variables of interest, and then for each practice, giving a binary assingment for whether households ever used each practice
+
 
 hh_joined_df <-merge(joined_df, out_rwanda, all.x=T, all.y=F) %>% 
   select(hfias, hh_refno, ag3a_39, ag3a_45, ag3a_58, ag4a_04, ag3a_14, field_no, landscape_no, crop_name)
@@ -371,6 +377,8 @@ hh_joined_ec_ag <- aggregate(hfias ~ hh_refno + ec +landscape_no, FUN = mean, da
 
 ```{r}
 
+#linear regression models, foods security access score by wheter or not a practice was ever employed by a given household in anyround, controlling for VS landscape
+
 hfias_org_lm <- lm(hh_joined_org_ag$hfias ~ hh_joined_org_ag$sometimes_org + hh_joined_org_ag$landscape_no)
 summary(hfias_org_lm)
 # hfias 2.5 points lower, p = .092
@@ -420,9 +428,6 @@ summary(hfias_ec_lm)
 
 
 
-
-#### RK code starts here for a beautiful graph
-
 #Data wrangling & exploration
 ```{r}
 
@@ -442,6 +447,8 @@ fs_pest_ag <- mutate(hh_joined_pest_ag, Level = ifelse(hh_joined_pest_ag$hfias =
 
 
 ```
+
+
 
 ```{r}
 #Set theme
@@ -520,6 +527,9 @@ theme_VSR <- function () {
 
 ####Food security ~ Intercropping
 ```{r}
+#creating figures
+
+
 #View(fs_df)
 
 fs_inter_bar <- ggplot(fs_ic_ag, aes(sometimes_ic, fill=ordered(Level)))+
@@ -533,15 +543,18 @@ fs_inter_bar <- ggplot(fs_ic_ag, aes(sometimes_ic, fill=ordered(Level)))+
 
 fs_inter_bar
 
-ggsave("fs_inter_bar.png", plot = fs_inter_bar, device = "png", path = "~/Documents/Bren/GP/3Graphs/Results/",
-  width = 4, height = 3, units = c("in"),
-  dpi = 300)
+
+#Specify Save Path Here
+#ggsave("fs_inter_bar.png", plot = fs_inter_bar, device = "png", path = "~/Documents/Bren/GP/3Graphs/Results/",
+ # width = 4, height = 3, units = c("in"),
+  #dpi = 300)
 
 ```
 
 
 ####Food security ~ Inorganic fertilizer
 ```{r}
+#creating figures
 
 fs_inorg_bar <- ggplot(fs_inorg_ag, aes(sometimes_inorg, fill=ordered(Level)))+
   geom_bar(stat="count", position = "fill")+
@@ -554,15 +567,16 @@ fs_inorg_bar <- ggplot(fs_inorg_ag, aes(sometimes_inorg, fill=ordered(Level)))+
 
 fs_inorg_bar
 
-ggsave("fs_inorg_bar.png", plot = fs_inorg_bar, device = "png", path = "~/Documents/Bren/GP/3Graphs/Results/",
-  width = 4, height = 3, units = c("in"),
-  dpi = 300)
+# ggsave("fs_inorg_bar.png", plot = fs_inorg_bar, device = "png", path = "~/Documents/Bren/GP/3Graphs/Results/",
+#   width = 4, height = 3, units = c("in"),
+#   dpi = 300)
 
 ```
 
 
 ####Food security ~ Pesticides
 ```{r}
+#creating figures
 
 fs_pest_bar <- ggplot(fs_pest_ag, aes(sometimes_pest, fill=ordered(Level)))+
   geom_bar(stat="count", position = "fill")+
@@ -575,9 +589,9 @@ fs_pest_bar <- ggplot(fs_pest_ag, aes(sometimes_pest, fill=ordered(Level)))+
 
 fs_pest_bar
 
-ggsave("fs_pest_bar.png", plot = fs_pest_bar, device = "png", path = "~/Documents/Bren/GP/3Graphs/Results/",
-  width = 4, height = 3, units = c("in"),
-  dpi = 300)
+# ggsave("fs_pest_bar.png", plot = fs_pest_bar, device = "png", path = "~/Documents/Bren/GP/3Graphs/Results/",
+#   width = 4, height = 3, units = c("in"),
+#   dpi = 300)
 
 ```
 
